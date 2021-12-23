@@ -1,3 +1,4 @@
+from points_and_payments.models import ContributorAccount
 import uuid
 
 from django.conf import settings
@@ -9,6 +10,7 @@ from django.dispatch import receiver
 from django.utils.translation import ugettext_lazy as _
 from entitlements.exceptions import ValidationError as ValidError
 from backend.mixins import TimeStampMixin, UUIDMixin
+
 
 
 class Person(TimeStampMixin):
@@ -33,6 +35,20 @@ class Person(TimeStampMixin):
         if not self.user.username:
             raise AttributeError
         return self.user.username
+
+    def get_community_status(self):
+        contributor_account = ContributorAccount.objects.get(owner=self)
+        if not contributor_account:
+            contributor_account = ContributorAccount.objects.create(owner=self)
+        return contributor_account.community_status
+
+    def clean(self):
+        # check if current instance is not developer edition
+        if not Person.objects.filter(pk=self.pk).exists():
+            try:
+                validate_development_edition("person")
+            except ValidError as e:
+                raise ValidationError(e)
 
 
 @receiver(post_save, sender=Person)

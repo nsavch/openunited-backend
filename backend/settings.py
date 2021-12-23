@@ -77,6 +77,7 @@ INSTALLED_APPS = [
 
     'core_utils',
 
+    'points_and_payments',
 ]
 
 GRAPHENE = {
