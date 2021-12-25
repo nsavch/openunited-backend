@@ -37,7 +37,7 @@ SECRET_KEY = os.environ.get(
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # DEBUG = strtobool(os.environ.get('DEBUG', '0'))
-DEBUG = True
+DEBUG = False
 # ALLOWED_HOSTS = ["product-factory-frontend-next.herokuapp.com"]
 ALLOWED_HOSTS = ["*"]
 
