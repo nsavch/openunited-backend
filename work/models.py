@@ -148,7 +148,7 @@ def save_product(sender, instance, created, **kwargs):
             product_data=dict(
                 name=instance.name,
                 slug=instance.slug,
-                owner=instance.get_product_owner().user.username
+                owner=instance.get_product_owner().username
             )
         )
 
