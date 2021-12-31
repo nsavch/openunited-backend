@@ -38,7 +38,7 @@ def is_admin(user_id, product_slug):
     if ProductPerson.objects.filter(
             person_id=user_id,
             product__slug=product_slug,
-            right__in=[ProductPerson.PERSON_TYPE_PRODUCT_ADMIN, ProductPerson.PERSON_TYPE_SUPER_ADMIN]
+            right__in=[ProductPerson.PERSON_TYPE_PRODUCT_ADMIN]
     ).count() > 0:
         return True
     else:
@@ -51,7 +51,6 @@ def is_admin_or_manager(person, product_slug):
             product__slug=product_slug,
             right__in=[
                 ProductPerson.PERSON_TYPE_PRODUCT_ADMIN,
-                ProductPerson.PERSON_TYPE_SUPER_ADMIN,
                 ProductPerson.PERSON_TYPE_PRODUCT_MANAGER
             ]
     ).count() > 0:

@@ -29,8 +29,7 @@ class IdeaBugQuery(ObjectType):
                 product__slug=product_slug,
                 person=current_person,
                 right__in=[ProductPerson.PERSON_TYPE_PRODUCT_ADMIN,
-                           ProductPerson.PERSON_TYPE_PRODUCT_MANAGER,
-                           ProductPerson.PERSON_TYPE_SUPER_ADMIN]).exists()
+                           ProductPerson.PERSON_TYPE_PRODUCT_MANAGER]).exists()
 
             if not any([current_person.user.is_superuser, product_owner, product_roles]):
                 # show user posted security bugs

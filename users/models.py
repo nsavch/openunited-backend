@@ -69,6 +69,8 @@ class User(AbstractBaseUser):
                                     )
                                 ])
 
+    REQUIRED_FIELDS = ['email']
+
     def has_perm(self, perm, obj=None):
         # this only needed for django admin
         return self.is_active and self.is_staff and self.is_superuser

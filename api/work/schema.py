@@ -21,7 +21,6 @@ class ProductQuery(ObjectType):
         else:
             for product_person in ProductPerson.objects.filter(product=product, person=person):
                 if product_person.right in [
-                    ProductPerson.PERSON_TYPE_SUPER_ADMIN,
                     ProductPerson.PERSON_TYPE_PRODUCT_ADMIN,
                     ProductPerson.PERSON_TYPE_PRODUCT_MANAGER,
                     ProductPerson.PERSON_TYPE_USER

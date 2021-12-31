@@ -543,6 +543,8 @@ class TaskListing(models.Model):
         if assignee:
             filter_data["assigned_to_person_id__in"] = assignee
 
+        filter_data["product__is_private"] = False
+
         queryset = TaskListing.objects.filter(**filter_data)
         if exclude_data:
             queryset = queryset.exclude(**exclude_data)
