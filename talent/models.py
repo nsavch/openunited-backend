@@ -46,14 +46,12 @@ class ProductPerson(TimeStampMixin, UUIDMixin):
     PERSON_TYPE_PRODUCT_ADMIN = 1
     PERSON_TYPE_PRODUCT_MANAGER = 2
     PERSON_TYPE_CONTRIBUTOR = 3
-    PERSON_TYPE_SUPER_ADMIN = 4
 
     PERSON_TYPE = (
         (PERSON_TYPE_USER, "User"),
         (PERSON_TYPE_PRODUCT_ADMIN, "Product Admin"),
         (PERSON_TYPE_PRODUCT_MANAGER, "Product Manager"),
         (PERSON_TYPE_CONTRIBUTOR, "Contributor"),
-        (PERSON_TYPE_SUPER_ADMIN, "Super Admin")
     )
     product = models.ForeignKey('work.Product', on_delete=models.CASCADE)
     person = models.ForeignKey(Person, on_delete=models.CASCADE)
