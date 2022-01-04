@@ -491,6 +491,14 @@ class UpdateTaskMutation(graphene.Mutation, InfoType):
                         message="You cannot change status to that because task is claimed"
                     )
                 else:
+                    # when making status to available, change all active task claims to failed status
+                    if int(task_input.status) == Task.TASK_STATUS_AVAILABLE:
+                        claimed_entries = task.taskclaim_set.filter(kind__in=[0,1])
+                        if claimed_entries.count() > 0:
+                            for ce in claimed_entries:
+                                ce.kind = 2
+                                ce.save()
+
                     status = int(task_input.status)
             else:
                 status = Task.TASK_STATUS_DRAFT

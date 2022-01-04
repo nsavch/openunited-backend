@@ -29,7 +29,8 @@ You can now start the backend server using the command:
 python manage.py runserver
 ```
 
-There is a management command to load some dummy data to get you started. The command is:
+There are two management commands to load some dummy data to get you started. The commands are:
 ```
 python manage.py dummy_data
+python manage.py import_expertise
 ```
