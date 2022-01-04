@@ -47,7 +47,7 @@ class TaskType(DjangoObjectType):
             return None
 
     def resolve_assigned_to(self, _):
-        task_claim = self.taskclaim_set.filter(kind__in=[0, 1]).first()
+        task_claim = self.taskclaim_set.filter(kind__in=[0, 1]).last()
         return task_claim.person if task_claim else None
 
     def resolve_in_review(self, _):
