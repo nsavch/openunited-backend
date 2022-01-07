@@ -250,3 +250,6 @@ except ImportError:
 
 LICENSE_FILE = os.environ.get('LICENSE_FILE', '.license')
 LICENSE_PUB_KEY = os.environ.get('LICENSE_PUB_KEY', '.license_key.pub')
+
+FAKE_LOGIN_USER_ID = os.environ.get('FAKE_LOGIN_USER_ID', None)
+
