@@ -1,5 +1,6 @@
 from talent.models import Person, ProductPerson
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from django.conf import settings
 
 
 def logged_in_user(request):
@@ -21,7 +22,14 @@ def get_current_user(info, input):
 
 def get_current_person(info, input_data=None):
     user = info.context.user
-    user_id = input_data.get("user_id", None) if input_data else None
+
+    if input_data:
+        user_id = input_data.get("user_id", None)  
+    elif settings.FAKE_LOGIN_USER_ID:
+        user_id = settings.FAKE_LOGIN_USER_ID
+    else:
+        user_id = None
+
     if user.is_anonymous and user_id and user_id != 0:
         return Person.objects.filter(id=user_id).first()
 

@@ -34,3 +34,8 @@ There are two management commands to load some dummy data to get you started. Th
 python manage.py dummy_data
 python manage.py import_expertise
 ```
+
+When developing locally, It is possible to allow a predefined user ID to be used for authentication. This should be used with the fake login settings of the front-end. Please put the same user id in the following field of the .env file:
+```
+FAKE_LOGIN_USER_ID=YOUR_USER_ID_SAME_AS_FRONTEND
+```
