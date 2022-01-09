@@ -9,6 +9,9 @@ from work.models import *
 from talent.models import Person, ProductPerson, PersonProfile, Review
 from matching.models import TaskClaim, TaskDeliveryAttempt
 
+import json
+import csv
+
 
 class Command(BaseCommand):
     def add_arguments(self, parser):
@@ -340,6 +343,64 @@ class Command(BaseCommand):
             created_by=users[1]
         )
 
+    def save_expertise(self, category, name, selectable, parent):
+        exp = Expertise()
+        exp.category = category
+        exp.name = name
+        exp.selectable = selectable
+        exp.parent = parent
+        exp.save()
+        return exp
+
+    def create_category_and_expertise(self):
+        # only import if we do not have any data
+        if not Expertise.objects.count():
+            with open('api/management/commands/data/ou-task-category-and-expertise.csv') as csv_file:
+                print('Creating category and expertise...')
+                csv_reader = csv.reader(csv_file, delimiter=',')
+                line_count = 0
+                for row in csv_reader:
+                    line_count += 1
+                    if line_count > 1:
+                        cat_id = row[0]
+                        cat_parent = row[1]
+                        active = row[2]
+                        selectable = row[3]
+                        cat_name = row[4]
+                        expertise = row[5]
+
+                        # print('Category: %s (%s)' % (cat_name, cat_id))
+
+                        try:
+                            category = TaskCategory.objects.get(id=cat_id)
+                        except:
+                            # task category does not exist
+                            # create it first
+                            category = TaskCategory(id=cat_id, parent_id=cat_parent,
+                                                    active=active, selectable=selectable, name=cat_name)
+                            category.save()
+
+                        if len(expertise) > 0:
+                            expertise = json.loads(expertise)
+   
+                            for key in expertise.keys():
+                                # print('Expertise root:', key)
+
+                                exp = self.save_expertise(
+                                    category, key, 0, None)
+
+                                if type(expertise[key]) == list:
+                                    for val in expertise[key]:
+                                        # print('Child:', val)
+                                        child_exp = self.save_expertise(
+                                            category, val, 1, exp)
+                                else:
+                                    # print('Child: ', expertise[key])
+                                    child_exp = self.save_expertise(
+                                        category, expertise[key], 1, exp)
+                print('Category and expertise created successfully.')
+                
+
     def handle(self, *args, **options):
         # Create users
         users = self.create_users()
@@ -369,3 +430,6 @@ class Command(BaseCommand):
 
         # Create reviews
         self.create_reviews(users, products)
+
+        # Create task category and expertise
+        self.create_category_and_expertise()
