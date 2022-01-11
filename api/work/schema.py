@@ -178,7 +178,7 @@ class CapabilityQuery(ObjectType):
 
 
 class InitiativeQuery(ObjectType):
-    initiatives = graphene.List(InitiativeType, product_slug=graphene.String(), input=InitiativeListInput())
+    initiatives = graphene.List(InitiativeType, product_slug=graphene.String(), status=graphene.Int(), input=InitiativeListInput())
     initiative = graphene.Field(InitiativeTaskType, id=graphene.Int(), input=TaskListInput())
 
     @staticmethod
@@ -202,9 +202,13 @@ class InitiativeQuery(ObjectType):
     def resolve_initiatives(*args, **kwargs):
         filtered_data = dict()
         product_slug = kwargs.get("product_slug")
+        status = kwargs.get("status")
         input_data = kwargs.get("input")
         if product_slug:
             filtered_data["product__slug"] = product_slug
+
+        if status:
+            filtered_data["status"] = status
 
         initiatives = Initiative.get_filtered_data(input_data, filtered_data)
 
