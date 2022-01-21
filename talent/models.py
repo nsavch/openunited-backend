@@ -120,3 +120,8 @@ class SocialAccount(models.Model):
 
     class Meta:
         unique_together = ('provider', 'uid')
+
+
+class PersonPreferences(models.Model):
+    person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name="preferences")
+    send_me_challenges = models.BooleanField(default=True)

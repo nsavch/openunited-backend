@@ -5,9 +5,10 @@ from graphene import InputObjectType
 from graphene_django.types import DjangoObjectType, ObjectType
 
 from matching.models import CLAIM_TYPE_ACTIVE
+from matching.models import TaskDeliveryAttempt, TaskDeliveryAttachment
 from talent.models import Person, ProductPerson, PersonProfile, Review, PersonSocial, PersonSkill, PersonWebsite
 from work.models import Task, Product, Initiative
-from matching.models import TaskDeliveryAttempt, TaskDeliveryAttachment
+
 
 class PersonSocialType(DjangoObjectType):
     class Meta:
@@ -50,6 +51,11 @@ class WebsiteInput(graphene.InputObjectType):
     type = graphene.String(required=True)
 
 
+class PersonPreferencesInput(graphene.InputObjectType):
+    name = graphene.String(required=True)
+    value = graphene.Boolean(required=True)
+
+
 class PersonInput(graphene.InputObjectType):
     first_name = graphene.String(required=True)
     last_name = graphene.String(required=True)
@@ -57,6 +63,7 @@ class PersonInput(graphene.InputObjectType):
     skills = graphene.List(SkillInput, required=False)
     avatar = graphene.Int(required=False)
     websites = graphene.List(WebsiteInput, required=False)
+    preferences = graphene.List(PersonPreferencesInput)
 
 
 class ProductPersonType(DjangoObjectType):
@@ -161,6 +168,7 @@ class PersonPortfolioType(DjangoObjectType):
 class ReviewerType(DjangoObjectType):
     class Meta:
         model = Person
+
     username = graphene.String()
     avatar = graphene.String()
     link = graphene.String()

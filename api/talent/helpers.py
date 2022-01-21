@@ -31,5 +31,12 @@ def update_person(person: Person, data: dict, **kwargs) -> None:
     websites.clear()
     for website in data["websites"]:
         websites.create(**website)
+    preferences = person.preferences.first() if person.preferences.exists() else None
+    if not preferences:
+        person.preferences.create(**{preference['name']: preference['value'] for preference in data['preferences']})
+    elif data['preferences']:
+        for preference in data['preferences']:
+            setattr(preferences, preference['name'], preference['value'])
+        preferences.save()
     profile.save()
     person.save()

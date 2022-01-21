@@ -75,7 +75,7 @@ class UpdatePersonMutation(graphene.Mutation):
         try:
             if not Person.objects.filter(email_address=current_person.email_address).exists():
                 return UpdatePersonMutation(status=False, message='User is not found')
-            person = Person.objects.prefetch_related("profile").get(email_address=current_person.email_address)
+            person = Person.objects.prefetch_related("profile", "preferences").get(email_address=current_person.email_address)
             update_person(person, person_input)
             return UpdatePersonMutation(status=True, message='Successfully updated')
         except ValidationError as e:
