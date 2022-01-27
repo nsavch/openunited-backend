@@ -63,10 +63,6 @@ class ProductQuery(ObjectType):
         else:
             products = products.filter(is_private=False)
 
-        for product in products:
-            active_initiatives = product.initiative_set.filter(status=1)
-            product.initiative_set.set(active_initiatives)
-
         return products
 
     @staticmethod
