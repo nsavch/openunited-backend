@@ -163,6 +163,7 @@ class InitiativeInput(graphene.InputObjectType):
 class ProductType(DjangoObjectType):
     available_task_num = graphene.Int()
     total_task_num = graphene.Int()
+    initiative_set = graphene.List(InitiativeType)
     owner = graphene.String()
 
     class Meta:
@@ -178,8 +179,12 @@ class ProductType(DjangoObjectType):
             ).count()
         return None
 
+    def resolve_initiative_set(self,_):
+        return Initiative.objects.filter(product=self.id,status=1)
+        
     def resolve_owner(self, _):
         return self.owner.get_username() if self.owner else None
+
 
 
 class ProductInput(graphene.InputObjectType):
