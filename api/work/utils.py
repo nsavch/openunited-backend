@@ -36,9 +36,9 @@ def get_tasks(task_model, info, kwargs):
     input_data = kwargs.get('input')
     exclude_data = None
 
-    current_person = get_current_person(info, kwargs)
-    if not current_person:
-        exclude_data = {"status__in": [0, 1, 5]}
+    # current_person = get_current_person(info, kwargs)
+    # if not current_person:
+    exclude_data = {"status__in": [0, 1, 5]}
 
     return gql_optimizer.query(task_model.get_filtered_data(input_data, exclude_data=exclude_data), info)
 
