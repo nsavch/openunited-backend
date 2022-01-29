@@ -82,7 +82,7 @@ class UpdatePersonMutation(graphene.Mutation):
             return UpdatePersonMutation(status=False, message=str(e))
         except Exception as e:
             print(e, flush=True)
-            return UpdatePersonMutation(status=False, message='Unknown error')
+            return UpdatePersonMutation(status=False, message=str(e))
 
 
 class AvatarUploadMutation(graphene.Mutation):

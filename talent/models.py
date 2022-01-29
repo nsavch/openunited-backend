@@ -34,11 +34,10 @@ class Person(TimeStampMixin):
             raise AttributeError
         return self.user.username
 
-
-@receiver(post_save, sender=Person)
-def save_person(sender, instance, created, **kwargs):
-    if created:
-        PersonProfile.objects.create(person=instance)
+# @receiver(post_save, sender=Person)
+# def save_person(sender, instance, created, **kwargs):
+#     if created:
+#         PersonProfile.objects.create(person=instance)
 
 
 class ProductPerson(TimeStampMixin, UUIDMixin):
