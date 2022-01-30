@@ -1,4 +1,4 @@
-from talent.models import PersonProfile, PersonSkill, Person, PersonWebsite
+from talent.models import PersonProfile, PersonSkill, Person, PersonWebsite, PersonPreferences
 
 
 def create_person(person: Person, data: dict, **kwargs) -> None:
@@ -15,6 +15,7 @@ def create_person(person: Person, data: dict, **kwargs) -> None:
             expertise=skill["expertise"],
             person_profile=person_profile
         )
+    PersonPreferences.objects.create(person=person, **data['preferences'])
 
 
 def update_person(person: Person, data: dict, **kwargs) -> None:
@@ -33,10 +34,10 @@ def update_person(person: Person, data: dict, **kwargs) -> None:
         websites.create(**website)
     preferences = person.preferences.first() if person.preferences.exists() else None
     if not preferences:
-        person.preferences.create(**{preference['name']: preference['value'] for preference in data['preferences']})
+        person.preferences.create(**data['preferences'])
     elif data['preferences']:
-        for preference in data['preferences']:
-            setattr(preferences, preference['name'], preference['value'])
+        for preference_name in data['preferences']:
+            setattr(preferences, preference_name, data['preferences'][preference_name])
         preferences.save()
     profile.save()
     person.save()

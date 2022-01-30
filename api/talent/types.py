@@ -6,7 +6,8 @@ from graphene_django.types import DjangoObjectType, ObjectType
 
 from matching.models import CLAIM_TYPE_ACTIVE
 from matching.models import TaskDeliveryAttempt, TaskDeliveryAttachment
-from talent.models import Person, ProductPerson, PersonProfile, Review, PersonSocial, PersonSkill, PersonWebsite
+from talent.models import Person, ProductPerson, PersonProfile, Review, PersonSocial, PersonSkill, PersonWebsite, \
+    PersonPreferences
 from work.models import Task, Product, Initiative
 
 
@@ -52,8 +53,7 @@ class WebsiteInput(graphene.InputObjectType):
 
 
 class PersonPreferencesInput(graphene.InputObjectType):
-    name = graphene.String(required=True)
-    value = graphene.Boolean(required=True)
+    send_me_challenges = graphene.Boolean(required=True)
 
 
 class PersonInput(graphene.InputObjectType):
@@ -63,7 +63,7 @@ class PersonInput(graphene.InputObjectType):
     skills = graphene.List(SkillInput, required=False)
     avatar = graphene.Int(required=False)
     websites = graphene.List(WebsiteInput, required=False)
-    preferences = graphene.List(PersonPreferencesInput)
+    preferences = graphene.Field(PersonPreferencesInput)
 
 
 class ProductPersonType(DjangoObjectType):
@@ -129,6 +129,12 @@ class WebsiteType(DjangoObjectType):
         convert_choices_to_enum = False
 
 
+class PersonPreferencesType(DjangoObjectType):
+    class Meta:
+        model = PersonPreferences
+        fields = ('send_me_challenges', )
+
+
 class PersonPortfolioType(DjangoObjectType):
     class Meta:
         model = Person
@@ -138,6 +144,7 @@ class PersonPortfolioType(DjangoObjectType):
     skills = graphene.List(SkillType)
     websites = graphene.List(WebsiteType)
     website_types = graphene.List(graphene.String)
+    preferences = graphene.Field(PersonPreferencesType)
 
     def resolve_bio(self, info):
         profile = self.profile.last()
@@ -163,6 +170,10 @@ class PersonPortfolioType(DjangoObjectType):
 
     def resolve_website_types(self, info):
         return [website_type[1] for website_type in PersonWebsite.WebsiteType]
+
+    def resolve_preferences(self, info):
+        preferences = self.preferences.last()
+        return preferences
 
 
 class ReviewerType(DjangoObjectType):

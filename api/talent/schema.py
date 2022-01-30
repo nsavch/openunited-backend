@@ -74,7 +74,7 @@ class PersonQuery(ObjectType):
     @staticmethod
     def resolve_person_info(info, *args, **kwargs):
         person_slug = kwargs.get('person_slug')
-        person = Person.objects.prefetch_related('profile', 'profile__avatar').get(slug=person_slug)
+        person = Person.objects.prefetch_related('profile', 'profile__avatar', 'preferences').get(slug=person_slug)
         return person
 
     @staticmethod
