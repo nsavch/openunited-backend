@@ -4,7 +4,7 @@ from api.license.inputs import LicenseInput, ContributionGuideInput
 from api.mutations import StatusMessageMutation, ObjectExistsMutation
 from api.utils import is_admin, is_admin_or_manager
 from contribution_management.models import ContributorAgreement, ContributorAgreementAcceptance, ContributorGuide
-from work.models import Product
+from work.models import Product, TaskCategory
 
 
 class UpdateLicenseMutation(graphene.Mutation):
@@ -80,10 +80,15 @@ class CreateContributionGuideMutation(graphene.Mutation, StatusMessageMutation):
             return CreateContributionGuideMutation(status=False,
                                                    message=f"Contribution guide with title {title} already exist")
 
+        category = None
+        if input_data.category:
+            category = TaskCategory.objects.get(id=input_data.category)
+
         contribution_guide = ContributorGuide(
             title=title,
             description=input_data.description,
-            product=product
+            product=product,
+            category=category
         )
         contribution_guide.save()
 
@@ -117,10 +122,14 @@ class UpdateContributionGuideMutation(graphene.Mutation, StatusMessageMutation):
             return UpdateContributionGuideMutation(status=False,
                                                    message=f"Contribution guide with title {title} already exist")
 
+        category = None
+        if input_data.category:
+            category = TaskCategory.objects.get(id=input_data.category)
+
         contribution_guide.title = title
         contribution_guide.description = input_data.description
+        contribution_guide.category = category
         contribution_guide.save()
-        contribution_guide.stack.clear()
 
         return UpdateContributionGuideMutation(status=True, message="Contribution guide has been updated successfully")
 
