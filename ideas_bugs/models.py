@@ -2,7 +2,7 @@ from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from backend.mixins import TimeStampMixin, UUIDMixin, VoteMixin
 from ideas_bugs.utils import save_history, save_idea_or_bug
 from talent.models import Person
