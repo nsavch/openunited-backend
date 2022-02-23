@@ -75,6 +75,7 @@ INSTALLED_APPS = [
     'ideas_bugs',
     'pages',
     'contribution_management',
+    'notification',
 
     'core_utils',
 
@@ -253,3 +254,5 @@ LICENSE_PUB_KEY = os.environ.get('LICENSE_PUB_KEY', '.license_key.pub')
 
 FAKE_LOGIN_USER_ID = os.environ.get('FAKE_LOGIN_USER_ID', None)
 
+#Celery
+CELERY_BROKER_URL = 'pyamqp://guest@rabbitmq//'

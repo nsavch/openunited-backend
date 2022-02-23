@@ -1,6 +1,8 @@
 from django.db import IntegrityError
 from graphene_file_upload.scalars import Upload
 from entitlements.exceptions import ValidationError
+
+import notification.tasks
 from commercial.models import ProductOwner
 from contribution_management.models import ContributorAgreement, ContributorAgreementAcceptance
 from matching.models import TaskDeliveryAttempt, TaskClaim, TaskDeliveryAttachment, CLAIM_TYPE_ACTIVE, \
@@ -872,7 +874,7 @@ class ClaimTaskMutation(InfoStatusMutation, graphene.Mutation):
             task.status = Task.TASK_STATUS_CLAIMED
             task.updated_at = datetime.now()
             task.save()
-
+            notification.tasks.send_notification.delay('claim', receivers=[task.created_by.id, task.reviewer.id, current_person.id])
         except Task.DoesNotExist:
             success = False
             message = "The task doesn't exist"
