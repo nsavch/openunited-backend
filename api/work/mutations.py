@@ -7,6 +7,7 @@ from commercial.models import ProductOwner
 from contribution_management.models import ContributorAgreement, ContributorAgreementAcceptance
 from matching.models import TaskDeliveryAttempt, TaskClaim, TaskDeliveryAttachment, CLAIM_TYPE_ACTIVE, \
     CLAIM_TYPE_FAILED, CLAIM_TYPE_DONE
+from notification.models import NOTIFICATION_TYPE_CLAIM, NOTIFICATION_TYPE_APPROVE_TASK
 from .types import *
 from work.models import *
 from talent.models import ProductPerson, Person
@@ -874,7 +875,10 @@ class ClaimTaskMutation(InfoStatusMutation, graphene.Mutation):
             task.status = Task.TASK_STATUS_CLAIMED
             task.updated_at = datetime.now()
             task.save()
-            notification.tasks.send_notification.delay('claim', receivers=[task.created_by.id, task.reviewer.id, current_person.id])
+            notification.tasks.send_notification.delay(NOTIFICATION_TYPE_CLAIM,
+                                                       task_id=task.id,
+                                                       user=current_person.slug,
+                                                       receivers=list({task.created_by.id, task.reviewer.id, current_person.id}))
         except Task.DoesNotExist:
             success = False
             message = "The task doesn't exist"
@@ -943,7 +947,11 @@ class ApproveTaskMutation(InfoStatusMutation, graphene.Mutation):
             task.updated_by = current_person
             task.updated_at = datetime.now()
             task.save()
-
+            notification.tasks.send_notification.delay(NOTIFICATION_TYPE_APPROVE_TASK,
+                                                       task_id=task.id,
+                                                       user=current_person.slug,
+                                                       receivers=list(
+                                                           {task.created_by.id, task.reviewer.id, current_person.id}))
             return ApproveTaskMutation(success=True, message="The work has been approved")
         except Task.DoesNotExist:
             return ApproveTaskMutation(success=False, message="The task doesn't exist")

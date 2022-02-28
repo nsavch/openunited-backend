@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
+import csv
+import json
 from random import randrange
 
-from users.models import User
 from django.core.management import BaseCommand
 
 from commercial.models import Organisation, ProductOwner
-from work.models import *
-from talent.models import Person, ProductPerson, PersonProfile, Review
 from matching.models import TaskClaim, TaskDeliveryAttempt
-
-import json
-import csv
+from notification.models import EmailNotification, NOTIFICATION_TYPE_CLAIM, Notification, NOTIFICATION_TYPE_APPROVE_TASK
+from talent.models import Person, ProductPerson, PersonProfile, Review
+from users.models import User
+from work.models import *
 
 
 class Command(BaseCommand):
@@ -159,7 +159,7 @@ class Command(BaseCommand):
                 "updated_by": users[1]
             }
         ]
-        
+
         for task in tasks:
             try:
                 capability = Capability.objects.get(name=task["capability"])
@@ -213,12 +213,12 @@ class Command(BaseCommand):
         for task in tasks:
             person = users[index % num_of_users]
             tc, created = TaskClaim.objects.get_or_create(task=task,
-                                            person=person,
-                                            kind=TaskClaim.CLAIM_TYPE[index % 3][0])
+                                                          person=person,
+                                                          kind=TaskClaim.CLAIM_TYPE[index % 3][0])
 
             TaskDeliveryAttempt.objects.get_or_create(task_claim=tc,
-                                                   person=person,
-                                                   kind=1, delivery_message='')
+                                                      person=person,
+                                                      kind=1, delivery_message='')
             index = index + 1
 
     def create_product_persons(self, users, products):
@@ -382,7 +382,7 @@ class Command(BaseCommand):
 
                         if len(expertise) > 0:
                             expertise = json.loads(expertise)
-   
+
                             for key in expertise.keys():
                                 # print('Expertise root:', key)
 
@@ -399,7 +399,21 @@ class Command(BaseCommand):
                                     child_exp = self.save_expertise(
                                         category, expertise[key], 1, exp)
                 print('Category and expertise created successfully.')
-                
+
+    def create_notification(self):
+        EmailNotification.objects.get_or_create(
+            type=NOTIFICATION_TYPE_CLAIM,
+            message='The task {task_id} is claimed by {user}',
+            title='Claim of task {task_id}',
+            template='{message}'
+        )
+
+        EmailNotification.objects.get_or_create(
+            type=NOTIFICATION_TYPE_APPROVE_TASK,
+            message='The task {task_id} is approved',
+            title='Approving task {task_id}',
+            template='{message}'
+        )
 
     def handle(self, *args, **options):
         # Create users
@@ -414,7 +428,7 @@ class Command(BaseCommand):
         initiative = self.create_initiatives(products[0])
 
         # Create stacks
-        stacks = None #self.create_stacks()
+        stacks = None  # self.create_stacks()
 
         # Create tasks
         self.create_tasks(users, initiative, stacks)
@@ -433,3 +447,6 @@ class Command(BaseCommand):
 
         # Create task category and expertise
         self.create_category_and_expertise()
+
+        # Create notification
+        self.create_notification()
