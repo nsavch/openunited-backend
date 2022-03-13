@@ -327,7 +327,7 @@ class TaskListingType(DjangoObjectType):
     product = graphene.Field(ProductDictType)
     tags = graphene.List(graphene.String)
     category = graphene.String()
-    expertise = graphene.String()
+    expertise = graphene.List(ExpertiseType)
     assigned_to_person = graphene.Field(AssignedToPersonType)
     reviewer = graphene.Field(PersonJSONData)
     video_url = graphene.String()
@@ -343,7 +343,10 @@ class TaskListingType(DjangoObjectType):
         return self.task.category if self.task.category else None
 
     def resolve_expertise(self, info):
-        return self.task.expertise if self.task.category else None
+        if self.task.expertise.count():
+            return self.task.expertise.all()
+        else:
+            return None
 
     def resolve_priority(self, _):
         try:

@@ -311,15 +311,10 @@ class TaskCategoryQuery(ObjectType):
 
 class ExpertiseQuery(ObjectType):
     expertises_listing = graphene.JSONString(object_id=graphene.Int())
-    # expertises = graphene.List(graphene.String)
 
     @staticmethod
     def resolve_expertises_listing(info, *args, **kwargs):
         return get_expertises_listing(Expertise, info, *args, **kwargs)
-
-    # @staticmethod
-    # def resolve_expertises(info, *args, **kwargs):
-    #     return get_expertises(TaskCategory, info, *args, **kwargs)
 
 
 class CodeRepositoryQuery(ObjectType):
