@@ -7,7 +7,7 @@ from django.core.management import BaseCommand
 
 from commercial.models import Organisation, ProductOwner
 from matching.models import TaskClaim, TaskDeliveryAttempt
-from notification.models import EmailNotification, NOTIFICATION_TYPE_CLAIM, Notification, NOTIFICATION_TYPE_APPROVE_TASK
+from notification.models import EmailNotification, Notification
 from talent.models import Person, ProductPerson, PersonProfile, Review
 from users.models import User
 from work.models import *
@@ -402,14 +402,14 @@ class Command(BaseCommand):
 
     def create_notification(self):
         EmailNotification.objects.get_or_create(
-            type=NOTIFICATION_TYPE_CLAIM,
+            event_type=Notification.EventType.TASK_CLAIMED,
             message='The task {task_id} is claimed by {user}',
             title='Claim of task {task_id}',
             template='{message}'
         )
 
         EmailNotification.objects.get_or_create(
-            type=NOTIFICATION_TYPE_APPROVE_TASK,
+            event_type=Notification.EventType.SUBMISSION_APPROVED,
             message='The task {task_id} is approved',
             title='Approving task {task_id}',
             template='{message}'

@@ -1,16 +1,19 @@
 from django.db import models
-
-NOTIFICATION_TYPE_CLAIM = 0
-NOTIFICATION_TYPE_COMMENT = 1
-NOTIFICATION_TYPE_APPROVE_TASK = 2
+from django.utils.translation import gettext_lazy as _
 
 
 class Notification(models.Model):
-    NOTIFICATION_TYPE = (
-        (NOTIFICATION_TYPE_CLAIM, "Claim"),
-        (NOTIFICATION_TYPE_APPROVE_TASK, "Approve Task")
-    )
-    type = models.IntegerField(choices=NOTIFICATION_TYPE)
+    class EventType(models.IntegerChoices):
+        TASK_CLAIMED = 0, _('Task Claimed')
+        TASK_COMMENT = 1, _('Task Comment')
+        SUBMISSION_APPROVED = 2, _('Submission Approved')
+        SUBMISSION_REJECTED = 3, _('Submission Rejected')
+
+    class Type(models.IntegerChoices):
+        EMAIL = 0
+        SMS = 1
+
+    event_type = models.IntegerField(choices=EventType.choices)
     message = models.CharField(max_length=1000)
 
 

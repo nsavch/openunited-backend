@@ -7,7 +7,7 @@ from commercial.models import ProductOwner
 from contribution_management.models import ContributorAgreement, ContributorAgreementAcceptance
 from matching.models import TaskDeliveryAttempt, TaskClaim, TaskDeliveryAttachment, CLAIM_TYPE_ACTIVE, \
     CLAIM_TYPE_FAILED, CLAIM_TYPE_DONE
-from notification.models import NOTIFICATION_TYPE_CLAIM, NOTIFICATION_TYPE_APPROVE_TASK
+from notification.models import Notification
 from .types import *
 from work.models import *
 from talent.models import ProductPerson, Person
@@ -875,10 +875,12 @@ class ClaimTaskMutation(InfoStatusMutation, graphene.Mutation):
             task.status = Task.TASK_STATUS_CLAIMED
             task.updated_at = datetime.now()
             task.save()
-            notification.tasks.send_notification.delay(NOTIFICATION_TYPE_CLAIM,
+            notification.tasks.send_notification.delay([Notification.Type.EMAIL],
+                                                       Notification.EventType.TASK_CLAIMED,
+                                                       receivers=list(
+                                                           {task.created_by.id, task.reviewer.id, current_person.id}),
                                                        task_id=task.id,
-                                                       user=current_person.slug,
-                                                       receivers=list({task.created_by.id, task.reviewer.id, current_person.id}))
+                                                       user=current_person.slug)
         except Task.DoesNotExist:
             success = False
             message = "The task doesn't exist"
@@ -947,11 +949,12 @@ class ApproveTaskMutation(InfoStatusMutation, graphene.Mutation):
             task.updated_by = current_person
             task.updated_at = datetime.now()
             task.save()
-            notification.tasks.send_notification.delay(NOTIFICATION_TYPE_APPROVE_TASK,
-                                                       task_id=task.id,
-                                                       user=current_person.slug,
+            notification.tasks.send_notification.delay([Notification.Type.EMAIL],
+                                                       Notification.EventType.SUBMISSION_APPROVED,
                                                        receivers=list(
-                                                           {task.created_by.id, task.reviewer.id, current_person.id}))
+                                                           {task.created_by.id, task.reviewer.id, current_person.id}),
+                                                       task_id=task.id,
+                                                       user=current_person.slug)
             return ApproveTaskMutation(success=True, message="The work has been approved")
         except Task.DoesNotExist:
             return ApproveTaskMutation(success=False, message="The task doesn't exist")
