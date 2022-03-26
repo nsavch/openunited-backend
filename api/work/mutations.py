@@ -915,6 +915,38 @@ class RejectTaskMutation(InfoStatusMutation, graphene.Mutation):
             return RejectTaskMutation(success=False, message="The task doesn't exist")
 
 
+class RequestRevisionTaskMutation(InfoStatusMutation, graphene.Mutation):
+    class Arguments:
+        task_id = graphene.Int(required=True)
+
+    @staticmethod
+    @is_current_person
+    def mutate(current_person, info, *args, **kwargs):
+        try:
+            task_id = kwargs.get("task_id")
+            task = Task.objects.get(id=task_id)
+
+            # check if user has permissions
+            if not is_admin_or_manager(current_person, task.product.slug):
+                return RequestRevisionTaskMutation(success=False, message="You don't have permissions")
+
+            # set "Failed" status to task claims
+            task_claim = task.taskclaim_set.filter(kind__in=[CLAIM_TYPE_DONE, CLAIM_TYPE_IN_REVIEW]).all()
+            for claim in task_claim:
+                claim.kind = CLAIM_TYPE_ACTIVE
+                claim.save()
+
+            # set task status "Claimed"
+            task.status = Task.TASK_STATUS_CLAIMED
+            task.updated_by = current_person
+            task.updated_at = datetime.now()
+            task.save()
+
+            return RequestRevisionTaskMutation(success=True, message="The work has been requested for revision")
+        except Task.DoesNotExist:
+            return RequestRevisionTaskMutation(success=False, message="The task doesn't exist")
+
+
 class ApproveTaskMutation(InfoStatusMutation, graphene.Mutation):
     class Arguments:
         task_id = graphene.Int(required=True)
@@ -1012,3 +1044,4 @@ class WorkMutations(graphene.ObjectType):
     in_review_task = InReviewTaskMutation.Field()
     approve_task = ApproveTaskMutation.Field()
     reject_task = RejectTaskMutation.Field()
+    request_revision_task = RequestRevisionTaskMutation.Field()
