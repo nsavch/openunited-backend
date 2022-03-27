@@ -9,6 +9,12 @@ class Notification(models.Model):
         TASK_COMMENT = 1, _('Task Comment')
         SUBMISSION_APPROVED = 2, _('Submission Approved')
         SUBMISSION_REJECTED = 3, _('Submission Rejected')
+        BUG_REJECTED = 4, _('Bug Rejected')
+        IDEA_REJECTED = 5, _('Idea Rejected')
+        BUG_CREATED = 6, _('Bug Created')
+        IDEA_CREATED = 7, _('Idea Created')
+        BUG_CREATED_FOR_MEMBERS = 8, _('Bug Created For Members')
+        IDEA_CREATED_FOR_MEMBERS = 9, _('Idea Created For Members')
 
     class Type(models.IntegerChoices):
         EMAIL = 0

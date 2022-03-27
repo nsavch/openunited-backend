@@ -129,6 +129,9 @@ class Product(ProductMixin):
     def get_members_emails(self):
         return self.productperson_set.all().values_list("person__email_address", flat=True)
 
+    def get_members_ids(self):
+        return self.productperson_set.all().values_list("person__id", flat=True)
+
     def is_product_member(self, person):
         return self.productperson_set.filter(person=person).exists()
 

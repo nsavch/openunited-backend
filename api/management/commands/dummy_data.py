@@ -8,7 +8,7 @@ from django.core.management import BaseCommand
 from commercial.models import Organisation, ProductOwner
 from matching.models import TaskClaim, TaskDeliveryAttempt
 from notification.models import EmailNotification, Notification
-from talent.models import Person, ProductPerson, PersonProfile, Review
+from talent.models import PersonProfile, Review
 from users.models import User
 from work.models import *
 
@@ -413,6 +413,56 @@ class Command(BaseCommand):
             permitted_params='task_id,user',
             title='Approving task {task_id}',
             template='The task {task_id} is approved'
+        )
+
+        EmailNotification.objects.get_or_create(
+            event_type=Notification.EventType.BUG_REJECTED,
+            permitted_params='headline,link,product,description',
+            title='The bug was rejected',
+            template='''<p>The <strong>&laquo;{headline}&raquo;</strong> bug for product <strong>&laquo;{product}&raquo;</strong> was rejected.</p>
+                        <p>Explanation of the decision:</p>
+                        <blockquote>{description}</blockquote>'''
+        )
+
+        EmailNotification.objects.get_or_create(
+            event_type=Notification.EventType.IDEA_REJECTED,
+            permitted_params='headline,link,product,description',
+            title='The idea was rejected',
+            template='''<p>The <strong>&laquo;{headline}&raquo;</strong> idea for product <strong>&laquo;{product}&raquo;</strong> was rejected.</p>
+                        <p>Explanation of the decision:</p>
+                        <blockquote>{description}</blockquote>'''
+        )
+
+        EmailNotification.objects.get_or_create(
+            event_type=Notification.EventType.BUG_CREATED,
+            permitted_params='headline,link,product',
+            title='New bug successfully created',
+            template='''The <strong>&laquo;{headline}&raquo;</strong> bug for product <strong>&laquo;{product}&raquo;</strong> is successfully created.
+                        You can see the bug here: <a href="{link}" target="_blank">{link}</a>'''
+        )
+
+        EmailNotification.objects.get_or_create(
+            event_type=Notification.EventType.IDEA_CREATED,
+            permitted_params='headline,link,product',
+            title='New idea successfully created',
+            template='''The <strong>&laquo;{headline}&raquo;</strong> idea for product <strong>&laquo;{product}&raquo;</strong> is successfully created.
+                        You can see the idea here: <a href="{link}" target="_blank">{link}</a>'''
+        )
+
+        EmailNotification.objects.get_or_create(
+            event_type=Notification.EventType.BUG_CREATED_FOR_MEMBERS,
+            permitted_params='headline,link,product',
+            title='New bug for {product} was created',
+            template='''The <strong>&laquo;{headline}&raquo;</strong> bug for product <strong>&laquo;{product}&raquo;</strong> was created.
+                        The bug is available here: <a href="{link}" target="_blank">{link}</a>'''
+        )
+
+        EmailNotification.objects.get_or_create(
+            event_type=Notification.EventType.IDEA_CREATED_FOR_MEMBERS,
+            permitted_params='headline,link,product',
+            title='New idea for {product} was created',
+            template='''The <strong>&laquo;{headline}&raquo;</strong> idea for product <strong>&laquo;{product}&raquo;</strong> was created.
+                        The idea is available here: <a href="{link}" target="_blank">{link}</a>'''
         )
 
     def handle(self, *args, **options):
