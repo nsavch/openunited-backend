@@ -1,6 +1,11 @@
 from django.contrib import admin
 
 # Register your models here.
-from notification.models import Notification, EmailNotification
+from notification.models import EmailNotification
 
-admin.site.register(EmailNotification)
+
+class EmailNotificationAdmin(admin.ModelAdmin):
+    readonly_fields = ('permitted_params',)
+
+
+admin.site.register(EmailNotification, EmailNotificationAdmin)

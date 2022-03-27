@@ -43,8 +43,7 @@ def send_email(event_type, **kwargs):
     email_notification = EmailNotification.objects.filter(event_type=event_type).get()
 
     email_title = email_notification.title.format(**kwargs)
-    notification_message = email_notification.message.format(**kwargs)
-    email_content = email_notification.template.format(message=notification_message)
+    email_content = email_notification.template.format(**kwargs)
 
     logger.info(f'Email with title {email_title} and message {email_content} sending to {email_receiver}')
     send_mail(
