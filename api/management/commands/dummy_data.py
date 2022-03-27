@@ -403,16 +403,16 @@ class Command(BaseCommand):
     def create_notification(self):
         EmailNotification.objects.get_or_create(
             event_type=Notification.EventType.TASK_CLAIMED,
-            message='The task {task_id} is claimed by {user}',
+            permitted_params='task_id,user',
             title='Claim of task {task_id}',
-            template='{message}'
+            template='The task {task_id} is claimed by {user}'
         )
 
         EmailNotification.objects.get_or_create(
             event_type=Notification.EventType.SUBMISSION_APPROVED,
-            message='The task {task_id} is approved',
+            permitted_params='task_id,user',
             title='Approving task {task_id}',
-            template='{message}'
+            template='The task {task_id} is approved'
         )
 
     def handle(self, *args, **options):
