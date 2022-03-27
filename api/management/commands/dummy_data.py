@@ -465,6 +465,22 @@ class Command(BaseCommand):
                         The idea is available here: <a href="{link}" target="_blank">{link}</a>'''
         )
 
+        EmailNotification.objects.get_or_create(
+            event_type=Notification.EventType.TASK_STATUS_CHANGED,
+            permitted_params='title,link',
+            title='Task status changed',
+            template='''The task {title} is claimed now.
+                    You can see the task here: {link}'''
+        )
+
+        EmailNotification.objects.get_or_create(
+            event_type=Notification.EventType.TASK_IN_REVIEW,
+            permitted_params='title,link',
+            title='The task status was changed to "In review"',
+            template='''The task {title} status was changed to "In review".
+                        You can see the task here: {link}'''
+        )
+
     def handle(self, *args, **options):
         # Create users
         users = self.create_users()

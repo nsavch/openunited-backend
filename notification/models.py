@@ -15,6 +15,8 @@ class Notification(models.Model):
         IDEA_CREATED = 7, _('Idea Created')
         BUG_CREATED_FOR_MEMBERS = 8, _('Bug Created For Members')
         IDEA_CREATED_FOR_MEMBERS = 9, _('Idea Created For Members')
+        TASK_STATUS_CHANGED = 10, _('Task Status Changed')
+        TASK_IN_REVIEW = 11, _('Task In Review')
 
     class Type(models.IntegerChoices):
         EMAIL = 0

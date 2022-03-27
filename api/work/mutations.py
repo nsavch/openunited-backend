@@ -769,14 +769,12 @@ class InReviewTaskMutation(InfoStatusMutation, graphene.Mutation):
             task_claim.kind = CLAIM_TYPE_IN_REVIEW
             task_claim.save()
             if task.reviewer:
-                send_email(
-                    to_emails=Person.objects.get(pk=task.reviewer.id).email_address,
-                    subject='The task status was changed to "In review"',
-                    content=f"""
-                        The task {task.title} status was changed to "In review".
-                        You can see the task here: {task.get_task_link()}
-                    """
-                )
+                notification.tasks.send_notification.delay([Notification.Type.EMAIL],
+                                                           Notification.EventType.TASK_IN_REVIEW,
+                                                           receivers=[task.reviewer.id],
+                                                           title=task.title,
+                                                           link=task.get_task_link())
+
             # call task save event to update tasklisting model
             task.status = Task.TASK_STATUS_IN_REVIEW
             task.save()
