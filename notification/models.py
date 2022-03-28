@@ -17,6 +17,7 @@ class Notification(models.Model):
         IDEA_CREATED_FOR_MEMBERS = 9, _('Idea Created For Members')
         TASK_STATUS_CHANGED = 10, _('Task Status Changed')
         TASK_IN_REVIEW = 11, _('Task In Review')
+        GENERIC_COMMENT = 12, _('Generic Comment')
 
     class Type(models.IntegerChoices):
         EMAIL = 0

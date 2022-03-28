@@ -481,6 +481,13 @@ class Command(BaseCommand):
                         You can see the task here: {link}'''
         )
 
+        EmailNotification.objects.get_or_create(
+            event_type=Notification.EventType.GENERIC_COMMENT,
+            permitted_params='text',
+            title='You have been mentioned in the comment',
+            template='''{text}'''
+        )
+
     def handle(self, *args, **options):
         # Create users
         users = self.create_users()
