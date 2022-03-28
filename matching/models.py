@@ -1,14 +1,14 @@
-from django.contrib.auth.models import User
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from model_utils import FieldTracker
 from notifications.signals import notify
 
-from backend.utils import send_email
-from work.models import Task
-from talent.models import Person
+import notification.tasks
 from backend.mixins import TimeStampMixin, UUIDMixin
+from notification.models import Notification
+from talent.models import Person
+from work.models import Task
 
 CLAIM_TYPE_DONE = 0
 CLAIM_TYPE_ACTIVE = 1
@@ -47,11 +47,10 @@ def save_task_claim(sender, instance, created, **kwargs):
             message = f"The contributor quits the task: {task.get_task_link()}"
             if reviewer:
                 notify.send(instance, recipient=reviewer_user, verb=subject, description=message)
-                send_email(
-                    to_emails=reviewer.email_address,
-                    subject=subject,
-                    content=message
-                )
+                notification.tasks.send_notification.delay([Notification.Type.EMAIL],
+                                                           Notification.EventType.TASK_QUITTED,
+                                                           receivers=[reviewer.id],
+                                                           task_link=task.get_task_link())
 
             # subject = "The admin cancel the claim"
             # message = "The admin cancel the task claim"
@@ -69,11 +68,11 @@ def save_task_claim(sender, instance, created, **kwargs):
             message = f"You can see the task here: {task.get_task_link()}"
             if reviewer:
                 notify.send(instance, recipient=reviewer_user, verb=subject, description=message)
-                send_email(
-                    to_emails=reviewer.email_address,
-                    subject=subject,
-                    content=message
-                )
+                notification.tasks.send_notification.delay([Notification.Type.EMAIL],
+                                                           Notification.EventType.TASK_READY_TO_REVIEW,
+                                                           receivers=[reviewer.id],
+                                                           task_title=task.title,
+                                                           task_link=task.get_task_link())
 
 
 class TaskDeliveryAttempt(TimeStampMixin):
@@ -102,8 +101,8 @@ class TaskDeliveryAttachment(models.Model):
 def save_task_claim_request(sender, instance, created, **kwargs):
     task_claim = instance.task_claim
     contributor = instance.person
-    contributor_email = contributor.email_address
-    reviewer = getattr(task_claim, "reviewer", None)
+    contributor_id = contributor.id
+    reviewer = getattr(task_claim.task, "reviewer", None)
     reviewer_user = reviewer.user if reviewer else None
 
     # contributor request to claim it
@@ -113,12 +112,10 @@ def save_task_claim_request(sender, instance, created, **kwargs):
 
         if reviewer:
             notify.send(instance, recipient=reviewer_user, verb=subject, description=message)
-            send_email(
-                to_emails=reviewer.email_address,
-                subject=subject,
-                content=message
-            )
-
+            notification.tasks.send_notification.delay([Notification.Type.EMAIL],
+                                                       Notification.EventType.TASK_DELIVERY_ATTEMPT_CREATED,
+                                                       receivers=[reviewer.id],
+                                                       task_title=task_claim.task.title)
     if not created:
         # contributor cancel the claim request
         if instance.tracker.previous("kind") == 0 and instance.kind == 1:
@@ -129,25 +126,20 @@ def save_task_claim_request(sender, instance, created, **kwargs):
                 notify.send(instance, recipient=reviewer_user, verb=subject, description=message)
 
             notify.send(instance, recipient=contributor.user, verb=subject, description=message)
-
-            send_email(
-                to_emails=[contributor_email, reviewer.email_address],
-                subject=subject,
-                content=message
-            )
-
+            notification.tasks.send_notification.delay([Notification.Type.EMAIL],
+                                                       Notification.EventType.TASK_CLAIM_REQUEST_CANCELLED,
+                                                       receivers=list({reviewer.id, contributor_id}),
+                                                       task_title=task_claim.task.title)
         # contributor cancel the claim request
         if instance.tracker.previous("kind") == 0 and instance.kind == 2:
             subject = f"The task claim request has been rejected"
             message = f"The task claim request has been rejected for the \"{task_claim.task.title}\" task"
 
             notify.send(instance, recipient=contributor.user, verb=subject, description=message)
-
-            send_email(
-                to_emails=contributor_email,
-                subject=subject,
-                content=message
-            )
+            notification.tasks.send_notification.delay([Notification.Type.EMAIL],
+                                                       Notification.EventType.TASK_CLAIM_REQUEST_REJECTED,
+                                                       receivers=[contributor_id],
+                                                       task_title=task_claim.task.title)
 
         # admin accept the request
         if instance.kind == 0 and instance.tracker.previous("kind") != 0:
@@ -155,11 +147,10 @@ def save_task_claim_request(sender, instance, created, **kwargs):
             message = f"A new task claim request has been approved for the \"{task_claim.task.title}\" task"
 
             notify.send(instance, recipient=contributor.user, verb=subject, description=message)
-            send_email(
-                to_emails=contributor_email,
-                subject=subject,
-                content=message
-            )
+            notification.tasks.send_notification.delay([Notification.Type.EMAIL],
+                                                       Notification.EventType.TASK_CLAIM_REQUEST_APPROVED,
+                                                       receivers=[contributor_id],
+                                                       task_title=task_claim.task.title)
 
         # contributor quits the task
         if instance.is_canceled and not instance.tracker.previous("is_canceled"):
@@ -168,10 +159,9 @@ def save_task_claim_request(sender, instance, created, **kwargs):
 
             if reviewer:
                 notify.send(instance, recipient=reviewer_user, verb=subject, description=message)
-                send_email(
-                    to_emails=reviewer.email_address,
-                    subject=subject,
-                    content=message
-                )
+                notification.tasks.send_notification.delay([Notification.Type.EMAIL],
+                                                           Notification.EventType.CONTRIBUTOR_LEFT_TASK,
+                                                           receivers=[reviewer.id],
+                                                           task_title=task_claim.task.title)
         if task_claim.kind == CLAIM_TYPE_IN_REVIEW:
             task_claim.delete()

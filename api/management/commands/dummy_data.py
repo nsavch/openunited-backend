@@ -488,6 +488,63 @@ class Command(BaseCommand):
             template='''{text}'''
         )
 
+        EmailNotification.objects.get_or_create(
+            event_type=Notification.EventType.TASK_SUBMITTED,
+            permitted_params='task_title,task_link,person_first_name',
+            title='Task has been submitted',
+            template='''The task {task_title} has been submitted by {person_first_name}.
+                        You can see the task here: {task_link}'''
+        )
+
+        EmailNotification.objects.get_or_create(
+            event_type=Notification.EventType.TASK_QUITTED,
+            permitted_params='task_link',
+            title='The contributor quits the task',
+            template='''The contributor quits the task: {task_link}'''
+        )
+
+        EmailNotification.objects.get_or_create(
+            event_type=Notification.EventType.TASK_READY_TO_REVIEW,
+            permitted_params='task_title,task_link',
+            title='The task "{task_title}" is ready to review',
+            template='''You can see the task here: {task_link}'''
+        )
+
+        EmailNotification.objects.get_or_create(
+            event_type=Notification.EventType.TASK_DELIVERY_ATTEMPT_CREATED,
+            permitted_params='task_title',
+            title='A new task delivery attempt has been created',
+            template='''A new task delivery attempt has been created for the "{task_title}" task'''
+        )
+
+        EmailNotification.objects.get_or_create(
+            event_type=Notification.EventType.TASK_CLAIM_REQUEST_CANCELLED,
+            permitted_params='task_title',
+            title='The task claim request has been canceled',
+            template='''The task claim request has been canceled for the "{task_title}" task'''
+        )
+
+        EmailNotification.objects.get_or_create(
+            event_type=Notification.EventType.TASK_CLAIM_REQUEST_REJECTED,
+            permitted_params='task_title',
+            title='The task claim request has been rejected',
+            template='''The task claim request has been rejected for the "{task_title}" task'''
+        )
+
+        EmailNotification.objects.get_or_create(
+            event_type=Notification.EventType.TASK_CLAIM_REQUEST_APPROVED,
+            permitted_params='task_title',
+            title='A new task claim request has been approved',
+            template='''A new task claim request has been approved for the "{task_title}" task'''
+        )
+
+        EmailNotification.objects.get_or_create(
+            event_type=Notification.EventType.CONTRIBUTOR_LEFT_TASK,
+            permitted_params='task_title',
+            title='The contributor leave the task',
+            template=''' The contributor leave the task "{task_title}"'''
+        )
+
     def handle(self, *args, **options):
         # Create users
         users = self.create_users()
