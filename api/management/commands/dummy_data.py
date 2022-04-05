@@ -497,13 +497,6 @@ class Command(BaseCommand):
         )
 
         EmailNotification.objects.get_or_create(
-            event_type=Notification.EventType.TASK_QUITTED,
-            permitted_params='task_link',
-            title='The contributor quits the task',
-            template='''The contributor quits the task: {task_link}'''
-        )
-
-        EmailNotification.objects.get_or_create(
             event_type=Notification.EventType.TASK_READY_TO_REVIEW,
             permitted_params='task_title,task_link',
             title='The task "{task_title}" is ready to review',
@@ -515,27 +508,6 @@ class Command(BaseCommand):
             permitted_params='task_title',
             title='A new task delivery attempt has been created',
             template='''A new task delivery attempt has been created for the "{task_title}" task'''
-        )
-
-        EmailNotification.objects.get_or_create(
-            event_type=Notification.EventType.TASK_CLAIM_REQUEST_CANCELLED,
-            permitted_params='task_title',
-            title='The task claim request has been canceled',
-            template='''The task claim request has been canceled for the "{task_title}" task'''
-        )
-
-        EmailNotification.objects.get_or_create(
-            event_type=Notification.EventType.TASK_CLAIM_REQUEST_REJECTED,
-            permitted_params='task_title',
-            title='The task claim request has been rejected',
-            template='''The task claim request has been rejected for the "{task_title}" task'''
-        )
-
-        EmailNotification.objects.get_or_create(
-            event_type=Notification.EventType.TASK_CLAIM_REQUEST_APPROVED,
-            permitted_params='task_title',
-            title='A new task claim request has been approved',
-            template='''A new task claim request has been approved for the "{task_title}" task'''
         )
 
         EmailNotification.objects.get_or_create(

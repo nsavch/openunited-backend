@@ -19,13 +19,9 @@ class Notification(models.Model):
         TASK_IN_REVIEW = 11, _('Task In Review')
         GENERIC_COMMENT = 12, _('Generic Comment')
         TASK_SUBMITTED = 13, _('Task Submitted')
-        TASK_QUITTED = 14, _('Task Quitted')
-        TASK_READY_TO_REVIEW = 15, _('Task Ready To Review')
-        TASK_DELIVERY_ATTEMPT_CREATED = 16, _('Task Delivery Attempt Created')
-        TASK_CLAIM_REQUEST_CANCELLED = 17, _('Task Claim Request Cancelled')
-        TASK_CLAIM_REQUEST_REJECTED = 18, _('Task Claim Request Rejected')
-        TASK_CLAIM_REQUEST_APPROVED = 19, _('Task Claim Request Approved')
-        CONTRIBUTOR_LEFT_TASK = 20, _('Contributor Left Task')
+        TASK_READY_TO_REVIEW = 14, _('Task Ready To Review')
+        TASK_DELIVERY_ATTEMPT_CREATED = 15, _('Task Delivery Attempt Created')
+        CONTRIBUTOR_LEFT_TASK = 16, _('Contributor Left Task')
 
     class Type(models.IntegerChoices):
         EMAIL = 0

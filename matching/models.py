@@ -41,26 +41,6 @@ def save_task_claim(sender, instance, created, **kwargs):
     reviewer_user = reviewer.user if reviewer else None
 
     if not created:
-        # contributor quits the task
-        if instance.kind == CLAIM_TYPE_FAILED and instance.tracker.previous("kind") is not CLAIM_TYPE_FAILED:
-            subject = "The contributor quits the task"
-            message = f"The contributor quits the task: {task.get_task_link()}"
-            if reviewer:
-                notify.send(instance, recipient=reviewer_user, verb=subject, description=message)
-                notification.tasks.send_notification.delay([Notification.Type.EMAIL],
-                                                           Notification.EventType.TASK_QUITTED,
-                                                           receivers=[reviewer.id],
-                                                           task_link=task.get_task_link())
-
-            # subject = "The admin cancel the claim"
-            # message = "The admin cancel the task claim"
-            # notify.send(instance, recipient=contributor.user, verb=subject, description=message)
-            # send_email(
-            #     to_emails=contributor_email,
-            #     subject=subject,
-            #     content=message
-            # )
-
         # contributor submit the work for review
         if instance.kind == CLAIM_TYPE_DONE and instance.tracker.previous("kind") is not CLAIM_TYPE_DONE:
             task = instance.task
@@ -117,41 +97,6 @@ def save_task_claim_request(sender, instance, created, **kwargs):
                                                        receivers=[reviewer.id],
                                                        task_title=task_claim.task.title)
     if not created:
-        # contributor cancel the claim request
-        if instance.tracker.previous("kind") == 0 and instance.kind == 1:
-            subject = f"The task claim request has been canceled"
-            message = f"The task claim request has been canceled for the \"{task_claim.task.title}\" task"
-
-            if reviewer:
-                notify.send(instance, recipient=reviewer_user, verb=subject, description=message)
-
-            notify.send(instance, recipient=contributor.user, verb=subject, description=message)
-            notification.tasks.send_notification.delay([Notification.Type.EMAIL],
-                                                       Notification.EventType.TASK_CLAIM_REQUEST_CANCELLED,
-                                                       receivers=list({reviewer.id, contributor_id}),
-                                                       task_title=task_claim.task.title)
-        # contributor cancel the claim request
-        if instance.tracker.previous("kind") == 0 and instance.kind == 2:
-            subject = f"The task claim request has been rejected"
-            message = f"The task claim request has been rejected for the \"{task_claim.task.title}\" task"
-
-            notify.send(instance, recipient=contributor.user, verb=subject, description=message)
-            notification.tasks.send_notification.delay([Notification.Type.EMAIL],
-                                                       Notification.EventType.TASK_CLAIM_REQUEST_REJECTED,
-                                                       receivers=[contributor_id],
-                                                       task_title=task_claim.task.title)
-
-        # admin accept the request
-        if instance.kind == 0 and instance.tracker.previous("kind") != 0:
-            subject = f"A new task claim request has been approved"
-            message = f"A new task claim request has been approved for the \"{task_claim.task.title}\" task"
-
-            notify.send(instance, recipient=contributor.user, verb=subject, description=message)
-            notification.tasks.send_notification.delay([Notification.Type.EMAIL],
-                                                       Notification.EventType.TASK_CLAIM_REQUEST_APPROVED,
-                                                       receivers=[contributor_id],
-                                                       task_title=task_claim.task.title)
-
         # contributor quits the task
         if instance.is_canceled and not instance.tracker.previous("is_canceled"):
             subject = f"The contributor leave the task"
