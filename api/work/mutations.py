@@ -685,7 +685,8 @@ class ChangeTaskPriorityMutation(graphene.Mutation):
     status = graphene.Boolean()
 
     @staticmethod
-    def mutate(self, _, **kwargs):
+    @is_current_person
+    def mutate(current_person, info, *args, **kwargs):
         try:
             priority = kwargs.get('priority')
             task_id = kwargs.get('task_id')

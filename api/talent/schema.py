@@ -7,6 +7,7 @@ from api.work.types import CodeRepositoryType
 from .mutations import CreatePersonMutation, SignInPersonMutation, AvatarUploadMutation, UpdatePersonMutation, \
     AvatarDeleteMutation
 from ..utils import get_paginator, make_filters
+from ..decorators import is_current_person
 
 
 class PersonQuery(ObjectType):
@@ -32,6 +33,13 @@ class PersonQuery(ObjectType):
     person_task_delivery_message = graphene.Field(DeliveryAttemptType,
                                                   task_id=graphene.Int(),
                                                   person_slug=graphene.String())
+
+    logged_in_user = graphene.Field(PersonType, id=graphene.String())
+
+    @is_current_person
+    def resolve_logged_in_user(current_person, *args, **kwargs):
+        return current_person
+
 
     def resolve_person(self, info, **kwargs):
         id = kwargs.get('id')
