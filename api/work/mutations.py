@@ -1,10 +1,13 @@
 from django.db import IntegrityError
 from graphene_file_upload.scalars import Upload
 from entitlements.exceptions import ValidationError
+
+import notification.tasks
 from commercial.models import ProductOwner
 from contribution_management.models import ContributorAgreement, ContributorAgreementAcceptance
 from matching.models import TaskDeliveryAttempt, TaskClaim, TaskDeliveryAttachment, CLAIM_TYPE_ACTIVE, \
     CLAIM_TYPE_FAILED, CLAIM_TYPE_DONE
+from notification.models import Notification
 from .types import *
 from work.models import *
 from talent.models import ProductPerson, Person
@@ -767,14 +770,12 @@ class InReviewTaskMutation(InfoStatusMutation, graphene.Mutation):
             task_claim.kind = CLAIM_TYPE_IN_REVIEW
             task_claim.save()
             if task.reviewer:
-                send_email(
-                    to_emails=Person.objects.get(pk=task.reviewer.id).email_address,
-                    subject='The task status was changed to "In review"',
-                    content=f"""
-                        The task {task.title} status was changed to "In review".
-                        You can see the task here: {task.get_task_link()}
-                    """
-                )
+                notification.tasks.send_notification.delay([Notification.Type.EMAIL],
+                                                           Notification.EventType.TASK_IN_REVIEW,
+                                                           receivers=[task.reviewer.id],
+                                                           title=task.title,
+                                                           link=task.get_task_link())
+
             # call task save event to update tasklisting model
             task.status = Task.TASK_STATUS_IN_REVIEW
             task.save()
@@ -873,7 +874,12 @@ class ClaimTaskMutation(InfoStatusMutation, graphene.Mutation):
             task.status = Task.TASK_STATUS_CLAIMED
             task.updated_at = datetime.now()
             task.save()
-
+            notification.tasks.send_notification.delay([Notification.Type.EMAIL],
+                                                       Notification.EventType.TASK_CLAIMED,
+                                                       receivers=list(
+                                                           {task.created_by.id, task.reviewer.id, current_person.id}),
+                                                       task_id=task.id,
+                                                       user=current_person.slug)
         except Task.DoesNotExist:
             success = False
             message = "The task doesn't exist"
@@ -974,7 +980,12 @@ class ApproveTaskMutation(InfoStatusMutation, graphene.Mutation):
             task.updated_by = current_person
             task.updated_at = datetime.now()
             task.save()
-
+            notification.tasks.send_notification.delay([Notification.Type.EMAIL],
+                                                       Notification.EventType.SUBMISSION_APPROVED,
+                                                       receivers=list(
+                                                           {task.created_by.id, task.reviewer.id, current_person.id}),
+                                                       task_id=task.id,
+                                                       user=current_person.slug)
             return ApproveTaskMutation(success=True, message="The work has been approved")
         except Task.DoesNotExist:
             return ApproveTaskMutation(success=False, message="The task doesn't exist")

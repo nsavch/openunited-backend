@@ -1,5 +1,7 @@
 import re
-from backend.utils import send_email
+
+import notification.tasks
+from notification.models import Notification
 from talent.models import Person
 
 
@@ -24,15 +26,14 @@ def create_comment(current_person, comment_input, commented_object, comment_obje
                               person_id=current_person.id)
 
         mentioned_slugs = re.findall("@([\S]+)", comment_input.text)
-        mentioned_emails = list(Person.objects.filter(user__username__in=mentioned_slugs)
-                                .distinct()
-                                .values_list("email_address", flat=True))
+        mentioned_ids = list(Person.objects.filter(user__username__in=mentioned_slugs)
+                             .distinct()
+                             .values_list("id", flat=True))
 
-        send_email(
-            to_emails=mentioned_emails,
-            subject='You have been mentioned in the comment',
-            content=comment_input.text
-        )
+        notification.tasks.send_notification.delay([Notification.Type.EMAIL],
+                                                   Notification.EventType.GENERIC_COMMENT,
+                                                   receivers=mentioned_ids,
+                                                   text=comment_input.text)
         return True, "Comment was successfully created"
     except commented_object.DoesNotExist:
         return False, "Commented object doesn't exist"

@@ -1,10 +1,11 @@
 import graphene
 
-from backend.utils import send_email
-from .types import TaskClaimInput, TaskClaimType
+import notification.tasks
 from matching.models import TaskClaim
-from work.models import Task
+from notification.models import Notification
 from talent.models import Person
+from work.models import Task
+from .types import TaskClaimInput, TaskClaimType
 
 
 class CreateTaskClaimMutation(graphene.Mutation):
@@ -31,14 +32,12 @@ class CreateTaskClaimMutation(graphene.Mutation):
             status = True
 
             if task.reviewer:
-                send_email(
-                    to_emails=Person.objects.get(pk=task.reviewer.id).email_address,
-                    subject='Task has been submitted',
-                    content=f"""
-                        The task {task.title} has been submitted by {person.first_name}.
-                        You can see the task here: {task.get_task_link()}
-                    """
-                )
+                notification.tasks.send_notification.delay([Notification.Type.EMAIL],
+                                                           Notification.EventType.TASK_SUBMITTED,
+                                                           receivers=[task.reviewer.id],
+                                                           task_title=task.title,
+                                                           task_link=task.get_task_link(),
+                                                           person_first_name=person.first_name)
         except:
             pass
 

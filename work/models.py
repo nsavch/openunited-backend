@@ -1,14 +1,14 @@
 from django.conf import settings
-from django.core.exceptions import ValidationError
-from entitlements.exceptions import ValidationError as ValidError
-from django.db import models, transaction
 from django.contrib.postgres.fields import ArrayField
+from django.db import models, transaction
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from model_utils import FieldTracker
 from treebeard.mp_tree import MP_Node
+
+import notification.tasks
 from backend.mixins import TimeStampMixin, UUIDMixin
-from backend.utils import send_email
+from notification.models import Notification
 from talent.models import Person, ProductPerson
 from work.mixins import ProductMixin
 from work.utils import get_person_data, to_dict
@@ -129,6 +129,9 @@ class Product(ProductMixin):
     def get_members_emails(self):
         return self.productperson_set.all().values_list("person__email_address", flat=True)
 
+    def get_members_ids(self):
+        return self.productperson_set.all().values_list("person__id", flat=True)
+
     def is_product_member(self, person):
         return self.productperson_set.filter(person=person).exists()
 
@@ -234,9 +237,9 @@ class TaskCategory(models.Model):
 
 class Expertise(models.Model):
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, default=None,
-                                related_name="expertise_children")
+                               related_name="expertise_children")
     category = models.ForeignKey(TaskCategory, on_delete=models.SET_NULL, null=True, blank=True, default=None,
-                                related_name="category_expertise")
+                                 related_name="category_expertise")
     selectable = models.BooleanField(default=False)
     name = models.CharField(max_length=100)
 
@@ -285,8 +288,8 @@ class Task(TimeStampMixin, UUIDMixin):
     status = models.IntegerField(choices=TASK_STATUS, default=0)
     attachment = models.ManyToManyField(Attachment, related_name="task_attachements", blank=True)
     tag = models.ManyToManyField(Tag, related_name="task_tags", blank=True)
-    category = models.ForeignKey(TaskCategory, on_delete=models.CASCADE, related_name="task", 
-                                    blank=True, null=True, default=None)
+    category = models.ForeignKey(TaskCategory, on_delete=models.CASCADE, related_name="task",
+                                 blank=True, null=True, default=None)
     expertise = models.ManyToManyField(Expertise, related_name="task_expertise")
     blocked = models.BooleanField(default=False)
     featured = models.BooleanField(default=False)
@@ -393,14 +396,11 @@ def save_task(sender, instance, created, **kwargs):
         if instance.tracker.previous('status') != instance.status \
                 and instance.status == Task.TASK_STATUS_CLAIMED \
                 and reviewer:
-            send_email(
-                to_emails=reviewer.email_address,
-                subject='Task status changed',
-                content=f"""
-                    The task {instance.title} is claimed now.
-                    You can see the task here: {instance.get_task_link()}
-                """
-            )
+            notification.tasks.send_notification.delay([Notification.Type.EMAIL],
+                                                       Notification.EventType.TASK_STATUS_CHANGED,
+                                                       receivers=[reviewer.id],
+                                                       title=instance.title,
+                                                       link=instance.get_task_link())
     except Person.DoesNotExist:
         pass
 

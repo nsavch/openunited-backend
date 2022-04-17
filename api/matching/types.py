@@ -17,7 +17,7 @@ class TaskClaimInput(graphene.InputObjectType):
     task = graphene.Int(
         description="Foreign key to Task", required=True
     )
-    person = graphene.Int(
+    person = graphene.UUID(
         description="Foreign key to Person", required=True
     )
     kind = graphene.Int(
