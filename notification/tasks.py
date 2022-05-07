@@ -1,6 +1,6 @@
 from celery import shared_task
 from celery.utils.log import get_task_logger
-from django.core.mail import send_mail
+from backend.utils import send_sendgrid_email
 
 from notification.models import EmailNotification, Notification
 from talent.models import Person
@@ -42,13 +42,9 @@ def send_email(event_type, **kwargs):
         id=kwargs['receiver']).get()
     email_notification = EmailNotification.objects.filter(event_type=event_type).get()
 
-    email_title = email_notification.title.format(**kwargs)
+    email_subject = email_notification.title.format(**kwargs)
     email_content = email_notification.template.format(**kwargs)
 
-    logger.info(f'Email with title {email_title} and message {email_content} sending to {email_receiver}')
-    send_mail(
-        email_title,
-        email_content,
-        'test@example.com',
-        [email_receiver]
-    )
+    logger.info(f'Email with subject {email_subject} and message {email_content} sending to {email_receiver}')
+    
+    send_sendgrid_email([email_receiver], email_subject, email_content)

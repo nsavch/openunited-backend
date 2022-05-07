@@ -4,7 +4,7 @@ from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 
 
-def send_email(to_emails, subject, content):
+def send_sendgrid_email(to_emails, subject, content):
     try:
         message = Mail(
             from_email=settings.EMAIL_HOST,
