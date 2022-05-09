@@ -906,7 +906,7 @@ class RejectTaskMutation(InfoStatusMutation, graphene.Mutation):
                 return RejectTaskMutation(success=False, message="You don't have permissions")
 
             # set "Failed" status to task claims
-            task_claim = task.taskclaim_set.filter(kind__in=[CLAIM_TYPE_DONE, CLAIM_TYPE_IN_REVIEW]).first()
+            task_claim = task.taskclaim_set.filter(kind__in=[CLAIM_TYPE_IN_REVIEW]).first()
             task_claim.kind = CLAIM_TYPE_FAILED
             task_claim.save()
 
@@ -922,7 +922,7 @@ class RejectTaskMutation(InfoStatusMutation, graphene.Mutation):
                                                            {task.created_by.id, task.reviewer.id, 
                                                             current_person.id, task_claim.person.id}),
                                                        task_id=task.id,
-                                                       user=current_person.slug)            
+                                                       user=task_claim.person.slug)            
 
             return RejectTaskMutation(success=True, message="The work has been rejected")
         except Task.DoesNotExist:
@@ -961,7 +961,7 @@ class RequestRevisionTaskMutation(InfoStatusMutation, graphene.Mutation):
                                                            {task.created_by.id, task.reviewer.id, 
                                                            current_person.id, task_claim.person.id}),
                                                        task_id=task.id,
-                                                       user=current_person.slug)            
+                                                       user=task_claim.person.slug)            
 
             return RequestRevisionTaskMutation(success=True, message="The work has been requested for revision")
         except Task.DoesNotExist:
@@ -999,7 +999,7 @@ class ApproveTaskMutation(InfoStatusMutation, graphene.Mutation):
                                                            {task.created_by.id, task.reviewer.id, 
                                                             current_person.id, task_claim.person.id}),
                                                        task_id=task.id,
-                                                       user=current_person.slug)
+                                                       user=task_claim.person.slug)
 
             return ApproveTaskMutation(success=True, message="The work has been approved")
         except Task.DoesNotExist:
