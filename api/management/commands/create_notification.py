@@ -38,6 +38,15 @@ class Command(BaseCommand):
         )
 
         EmailNotification.objects.update_or_create(
+            event_type=Notification.EventType.SUBMISSION_REVISION_REQUESTED,
+            defaults={
+                'permitted_params': 'task_id,user',
+                'title': 'Task {task_id} revision requested',
+                'template': 'Revision was requested for the submission of task {task_id} by {user}.'
+            }
+        )
+
+        EmailNotification.objects.update_or_create(
             event_type=Notification.EventType.BUG_REJECTED,
             defaults={
                 'permitted_params': 'headline,link,product,description',

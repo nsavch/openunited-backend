@@ -22,6 +22,7 @@ class Notification(models.Model):
         TASK_READY_TO_REVIEW = 14, _('Task Ready To Review')
         TASK_DELIVERY_ATTEMPT_CREATED = 15, _('Task Delivery Attempt Created')
         CONTRIBUTOR_LEFT_TASK = 16, _('Contributor Left Task')
+        SUBMISSION_REVISION_REQUESTED = 17, _('Submission Revision Requested')
 
     class Type(models.IntegerChoices):
         EMAIL = 0
