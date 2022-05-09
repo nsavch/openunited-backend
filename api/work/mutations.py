@@ -949,6 +949,13 @@ class RequestRevisionTaskMutation(InfoStatusMutation, graphene.Mutation):
             task.updated_at = datetime.now()
             task.save()
 
+            notification.tasks.send_notification.delay([Notification.Type.EMAIL],
+                                                       Notification.EventType.SUBMISSION_REJECTED,
+                                                       receivers=list(
+                                                           {task.created_by.id, task.reviewer.id, current_person.id}),
+                                                       task_id=task.id,
+                                                       user=current_person.slug)
+
             return RequestRevisionTaskMutation(success=True, message="The work has been requested for revision")
         except Task.DoesNotExist:
             return RequestRevisionTaskMutation(success=False, message="The task doesn't exist")
@@ -986,6 +993,7 @@ class ApproveTaskMutation(InfoStatusMutation, graphene.Mutation):
                                                            {task.created_by.id, task.reviewer.id, current_person.id}),
                                                        task_id=task.id,
                                                        user=current_person.slug)
+                                                       
             return ApproveTaskMutation(success=True, message="The work has been approved")
         except Task.DoesNotExist:
             return ApproveTaskMutation(success=False, message="The task doesn't exist")

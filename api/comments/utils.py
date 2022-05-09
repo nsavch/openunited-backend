@@ -26,20 +26,20 @@ def create_comment(current_person, comment_input, commented_object, comment_obje
                               person_id=current_person.id)
 
         mentioned_slugs = re.findall("@([\S]+)", comment_input.text)
-        mentioned_ids = list(Person.objects.filter(user__username__in=mentioned_slugs)
+        receiver_ids = list(Person.objects.filter(user__username__in=mentioned_slugs)
                              .distinct()
                              .values_list("id", flat=True))
 
         # for task comment, inform all involved person
         if commented_object._meta.model_name == "task":
             task = commented_object.objects.get(pk=comment_input.commented_object_id)
-            mentioned_ids.append(task.created_by.id)
-            mentioned_ids.append(task.reviewer.id)
-            mentioned_ids.append(current_person.id)
+            receiver_ids.append(task.created_by.id)
+            receiver_ids.append(task.reviewer.id)
+            receiver_ids.append(current_person.id)
 
         notification.tasks.send_notification.delay([Notification.Type.EMAIL],
                                                    Notification.EventType.GENERIC_COMMENT,
-                                                   receivers=mentioned_ids,
+                                                   receivers=receiver_ids,
                                                    text=comment_input.text)
         return True, "Comment was successfully created"
     except commented_object.DoesNotExist:
