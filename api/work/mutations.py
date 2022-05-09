@@ -906,10 +906,9 @@ class RejectTaskMutation(InfoStatusMutation, graphene.Mutation):
                 return RejectTaskMutation(success=False, message="You don't have permissions")
 
             # set "Failed" status to task claims
-            task_claim = task.taskclaim_set.filter(kind__in=[CLAIM_TYPE_DONE, CLAIM_TYPE_IN_REVIEW]).all()
-            for claim in task_claim:
-                claim.kind = CLAIM_TYPE_FAILED
-                claim.save()
+            task_claim = task.taskclaim_set.filter(kind__in=[CLAIM_TYPE_DONE, CLAIM_TYPE_IN_REVIEW]).first()
+            task_claim.kind = CLAIM_TYPE_FAILED
+            task_claim.save()
 
             # set task status "Available"
             task.status = Task.TASK_STATUS_AVAILABLE
@@ -920,7 +919,8 @@ class RejectTaskMutation(InfoStatusMutation, graphene.Mutation):
             notification.tasks.send_notification.delay([Notification.Type.EMAIL],
                                                        Notification.EventType.SUBMISSION_REJECTED,
                                                        receivers=list(
-                                                           {task.created_by.id, task.reviewer.id, current_person.id}),
+                                                           {task.created_by.id, task.reviewer.id, 
+                                                            current_person.id, task_claim.person.id}),
                                                        task_id=task.id,
                                                        user=current_person.slug)            
 
@@ -945,10 +945,9 @@ class RequestRevisionTaskMutation(InfoStatusMutation, graphene.Mutation):
                 return RequestRevisionTaskMutation(success=False, message="You don't have permissions")
 
             # set "Failed" status to task claims
-            task_claim = task.taskclaim_set.filter(kind__in=[CLAIM_TYPE_DONE, CLAIM_TYPE_IN_REVIEW]).all()
-            for claim in task_claim:
-                claim.kind = CLAIM_TYPE_ACTIVE
-                claim.save()
+            task_claim = task.taskclaim_set.filter(kind__in=[CLAIM_TYPE_IN_REVIEW]).first()
+            task_claim.kind = CLAIM_TYPE_ACTIVE
+            task_claim.save()
 
             # set task status "Claimed"
             task.status = Task.TASK_STATUS_CLAIMED
@@ -959,7 +958,8 @@ class RequestRevisionTaskMutation(InfoStatusMutation, graphene.Mutation):
             notification.tasks.send_notification.delay([Notification.Type.EMAIL],
                                                        Notification.EventType.SUBMISSION_REVISION_REQUESTED,
                                                        receivers=list(
-                                                           {task.created_by.id, task.reviewer.id, current_person.id}),
+                                                           {task.created_by.id, task.reviewer.id, 
+                                                           current_person.id, task_claim.person.id}),
                                                        task_id=task.id,
                                                        user=current_person.slug)            
 
@@ -984,10 +984,9 @@ class ApproveTaskMutation(InfoStatusMutation, graphene.Mutation):
                 return ApproveTaskMutation(success=False, message="You don't have permissions")
 
             # set "Done" status to task claims
-            task_claim = task.taskclaim_set.filter(kind__in=[CLAIM_TYPE_DONE, CLAIM_TYPE_IN_REVIEW]).all()
-            for claim in task_claim:
-                claim.kind = CLAIM_TYPE_DONE
-                claim.save()
+            task_claim = task.taskclaim_set.filter(kind__in=[CLAIM_TYPE_IN_REVIEW]).first()
+            task_claim.kind = CLAIM_TYPE_DONE
+            task_claim.save()
 
             # set task status "Done"
             task.status = Task.TASK_STATUS_DONE
@@ -997,7 +996,8 @@ class ApproveTaskMutation(InfoStatusMutation, graphene.Mutation):
             notification.tasks.send_notification.delay([Notification.Type.EMAIL],
                                                        Notification.EventType.SUBMISSION_APPROVED,
                                                        receivers=list(
-                                                           {task.created_by.id, task.reviewer.id, current_person.id}),
+                                                           {task.created_by.id, task.reviewer.id, 
+                                                            current_person.id, task_claim.person.id}),
                                                        task_id=task.id,
                                                        user=current_person.slug)
 
