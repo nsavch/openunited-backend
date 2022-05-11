@@ -23,10 +23,10 @@ def get_current_user(info, input):
 def get_current_person(info, input_data=None):
     user = info.context.user
 
-    if input_data:
-        user_id = input_data.get("user_id", None)  
-    elif settings.FAKE_LOGIN_USER_ID:
+    if settings.FAKE_LOGIN_USER_ID:
         user_id = settings.FAKE_LOGIN_USER_ID
+    elif input_data:
+        user_id = input_data.get("user_id", None)  
     else:
         user_id = None
 
