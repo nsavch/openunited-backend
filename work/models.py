@@ -525,7 +525,7 @@ class TaskListing(models.Model):
         if statuses:
             filter_data["status__in"] = statuses
 
-        if Task.TASK_STATUS_AVAILABLE in statuses:
+        if Task.TASK_STATUS_AVAILABLE in statuses and Task.TASK_STATUS_BLOCKED not in statuses:
             filter_data["has_active_depends"] = False
 
         if tags:
