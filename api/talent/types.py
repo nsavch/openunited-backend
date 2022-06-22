@@ -5,10 +5,10 @@ from graphene import InputObjectType
 from graphene_django.types import DjangoObjectType, ObjectType
 
 from matching.models import CLAIM_TYPE_ACTIVE
-from matching.models import TaskDeliveryAttempt, TaskDeliveryAttachment
+from matching.models import BountyDeliveryAttempt, BountyDeliveryAttachment
 from talent.models import Person, ProductPerson, PersonProfile, Review, PersonSocial, PersonSkill, PersonWebsite, \
     PersonPreferences
-from work.models import Task, Product, Initiative
+from work.models import Challenge, Product, Initiative
 
 
 class PersonSocialType(DjangoObjectType):
@@ -106,7 +106,7 @@ class SkillType(DjangoObjectType):
 
 class Attachment(DjangoObjectType):
     class Meta:
-        model = TaskDeliveryAttachment
+        model = BountyDeliveryAttachment
 
 
 class DeliveryAttemptType(DjangoObjectType):
@@ -114,7 +114,7 @@ class DeliveryAttemptType(DjangoObjectType):
     attachments = graphene.List(Attachment)
 
     class Meta:
-        model = TaskDeliveryAttempt
+        model = BountyDeliveryAttempt
 
     def resolve_message(self, info):
         return self.delivery_message
@@ -227,9 +227,9 @@ class InitiativePersonType(DjangoObjectType):
 
 class PersonTask(DjangoObjectType):
     class Meta:
-        model = Task
+        model = Challenge
 
-    category = graphene.Field("api.work.types.TaskCategoryType")
+    category = graphene.Field("api.work.types.ChallengeSkillType")
     expertise = graphene.List("api.work.types.ExpertiseType")
     reviewer_person = graphene.Field(ReviewerType)
     product = graphene.Field(ProductCustomType)
@@ -260,7 +260,7 @@ class PersonTask(DjangoObjectType):
         owner = self.product.get_product_owner().username
         product = self.product.slug
         task_id = self.published_id
-        return f"{owner}/{product}/tasks/{task_id}"
+        return f"{owner}/{product}/challenges/{task_id}"
 
 
 class FilterType(InputObjectType):

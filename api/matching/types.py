@@ -1,11 +1,11 @@
 import graphene
 from graphene_django.types import DjangoObjectType
-from matching.models import TaskClaim, TaskDeliveryAttempt, TaskDeliveryAttachment, Task
+from matching.models import BountyClaim, BountyDeliveryAttempt, BountyDeliveryAttachment
 
 
 class TaskClaimType(DjangoObjectType):
     class Meta:
-        model = TaskClaim
+        model = BountyClaim
         convert_choices_to_enum = False
 
 
@@ -27,16 +27,16 @@ class TaskClaimInput(graphene.InputObjectType):
 
 class TaskDeliveryAttachmentType(DjangoObjectType):
     class Meta:
-        model = TaskDeliveryAttachment
+        model = BountyDeliveryAttachment
 
 
 class TaskDeliveryAttemptType(DjangoObjectType):
     attachments = graphene.List(TaskDeliveryAttachmentType)
 
     class Meta:
-        model = TaskDeliveryAttempt
+        model = BountyDeliveryAttempt
         convert_choices_to_enum = False
 
     def resolve_attachments(self, info):
-        attachments = TaskDeliveryAttachment.objects.filter(task_delivery_attempt=self.id).all()
+        attachments = BountyDeliveryAttachment.objects.filter(task_delivery_attempt=self.id).all()
         return attachments if len(attachments) > 0 else []

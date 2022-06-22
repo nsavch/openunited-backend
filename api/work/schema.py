@@ -1,7 +1,7 @@
 from api.work.inputs import TaskListInput, InitiativeListInput
 from .mutations import *
 from talent.models import ProductPerson
-from work.models import TaskListing
+from work.models import ChallengeListing
 from api.utils import logged_in_user, get_current_person
 
 from api.work.utils import get_tasks, get_tasks_by_product, get_task_category_listing, get_categories, get_expertises_listing
@@ -48,8 +48,8 @@ class ProductQuery(ObjectType):
     @get_logged_person
     def resolve_products(current_person, info, *args, stack_filter=None):
         if stack_filter and stack_filter.stacks and len(stack_filter.stacks) > 0:
-            suitable_tasks = Task.objects.filter(
-                status=Task.TASK_STATUS_AVAILABLE,
+            suitable_tasks = Challenge.objects.filter(
+                status=Challenge.CHALLENGE_STATUS_AVAILABLE,
                 stack__name__in=stack_filter.stacks,
             )
             products = Product.objects.filter(producttask__task__in=suitable_tasks).distinct()
@@ -83,7 +83,7 @@ class ProductQuery(ObjectType):
     @staticmethod
     def resolve_tags(*args, product_slug=None):
         if product_slug:
-            tasks = Task.objects.filter(producttask__product__slug=product_slug)
+            tasks = Challenge.objects.filter(producttask__product__slug=product_slug)
             tags_for_product = Tag.objects.filter(task_tags__in=tasks).distinct()
             return tags_for_product
 
@@ -108,7 +108,7 @@ class CapabilityQuery(ObjectType):
 
         if node_id is not None:
             capability = Capability.objects.get(pk=node_id)
-            tasks = TaskListing.get_filtered_data(input_data, {"capability_id": node_id}, exclude_data)
+            tasks = ChallengeListing.get_filtered_data(input_data, {"capability_id": node_id}, exclude_data)
             return CapabilityTaskType(capability=capability, tasks=tasks)
 
         return None
@@ -193,7 +193,7 @@ class InitiativeQuery(ObjectType):
 
         if initiative_id is not None:
             initiative = Initiative.objects.get(pk=initiative_id)
-            tasks = TaskListing.get_filtered_data(input_data, {"initiative_id": initiative_id}, exclude_data)
+            tasks = ChallengeListing.get_filtered_data(input_data, {"initiative_id": initiative_id}, exclude_data)
             return InitiativeTaskType(initiative=initiative, tasks=tasks)
 
         return None
@@ -255,27 +255,27 @@ class TaskQuery(ObjectType):
 
     @staticmethod
     def resolve_tasklisting(root, info, **kwargs):
-        return get_tasks(TaskListing, info, kwargs)
+        return get_tasks(ChallengeListing, info, kwargs)
 
     @staticmethod
     def resolve_tasks(root, info, **kwargs):
-        return get_tasks(Task, info, kwargs)
+        return get_tasks(Challenge, info, kwargs)
 
     @staticmethod
     def resolve_tasks_by_product(self, info, **kwargs):
-        return get_tasks_by_product(Task, info, kwargs)
+        return get_tasks_by_product(Challenge, info, kwargs)
 
     @staticmethod
     def resolve_tasklisting_by_product(self, info, **kwargs):
-        return get_tasks_by_product(TaskListing, info, kwargs)
+        return get_tasks_by_product(ChallengeListing, info, kwargs)
 
     @staticmethod
     def resolve_tasks_by_product_count(self, info, **kwargs):
-        return get_tasks_by_product(Task, info, kwargs, True)
+        return get_tasks_by_product(Challenge, info, kwargs, True)
 
     @staticmethod
     def resolve_tasklisting_by_product_count(self, info, **kwargs):
-        return get_tasks_by_product(TaskListing, info, kwargs, True)
+        return get_tasks_by_product(ChalengeListing, info, kwargs, True)
 
     @staticmethod
     def resolve_task(*args, **kwargs):
@@ -283,7 +283,7 @@ class TaskQuery(ObjectType):
             published_id = kwargs.get('published_id')
             product_slug = kwargs.get('product_slug')
 
-            return ProductTask.objects.get(product__slug=product_slug, task__published_id=published_id).task
+            return ProductChallenge.objects.get(product__slug=product_slug, task__published_id=published_id).task
         except Exception as ex:
             print(ex)
             return None
@@ -302,11 +302,11 @@ class TaskCategoryQuery(ObjectType):
 
     @staticmethod
     def resolve_task_category_listing(info, *args, **kwargs):
-        return get_task_category_listing(TaskCategory, info, *args, **kwargs)
+        return get_task_category_listing(Skill, info, *args, **kwargs)
 
     @staticmethod
     def resolve_categories(info, *args, **kwargs):
-        return get_categories(TaskCategory, info, *args, **kwargs)
+        return get_categories(Skill, info, *args, **kwargs)
 
 
 class ExpertiseQuery(ObjectType):
