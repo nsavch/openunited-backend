@@ -4,7 +4,7 @@ from api.license.inputs import LicenseInput, ContributionGuideInput
 from api.mutations import StatusMessageMutation, ObjectExistsMutation
 from api.utils import is_admin, is_admin_or_manager
 from contribution_management.models import ContributorAgreement, ContributorAgreementAcceptance, ContributorGuide
-from work.models import Product, TaskCategory
+from work.models import Product, Skill
 
 
 class UpdateLicenseMutation(graphene.Mutation):
@@ -82,7 +82,7 @@ class CreateContributionGuideMutation(graphene.Mutation, StatusMessageMutation):
 
         category = None
         if input_data.category:
-            category = TaskCategory.objects.get(id=input_data.category)
+            category = Skill.objects.get(id=input_data.category)
 
         contribution_guide = ContributorGuide(
             title=title,

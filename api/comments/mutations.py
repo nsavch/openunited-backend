@@ -3,9 +3,9 @@ from api.comments.inputs import CommentInput
 from api.comments.utils import create_comment
 from api.decorators import is_current_person
 from api.mutations import InfoStatusMutation
-from comments.models import TaskComment, BugComment, IdeaComment, CapabilityComment
+from comments.models import ChallengeComment, BugComment, IdeaComment, CapabilityComment
 from ideas_bugs.models import Bug, Idea
-from work.models import Task, Capability
+from work.models import Challenge, Capability
 
 
 class CommentMutation(InfoStatusMutation, graphene.Mutation):
@@ -22,7 +22,7 @@ class CreateTaskCommentMutation(CommentMutation):
     @is_current_person
     def mutate(current_person, info, *args, **kwargs):
         comment_input = kwargs.get("comment_input")
-        success, message = create_comment(current_person, comment_input, Task, TaskComment)
+        success, message = create_comment(current_person, comment_input, Challenge, ChallengeComment)
 
         return CreateTaskCommentMutation(success=success, message=message)
 

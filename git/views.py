@@ -4,9 +4,9 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
-from work.models import Task, Product
+from work.models import Challenge, Product
 from talent.models import Person, ProductPerson
-from matching.models import TaskClaim
+from matching.models import BountyClaim
 
 from github import Github
 
@@ -50,12 +50,12 @@ def handle_tasks(params):
         pass
     else:
         try:
-            task = Task.objects.get(detail_url=params["issue"]["html_url"])
+            challenge = Challenge.objects.get(detail_url=params["issue"]["html_url"])
         except:
             raise Exception("task doesn't exit!")
 
         try:
-            match = TaskClaim.objects.get(task=task)
+            match = BountyClaim.objects.get(Challenge=challenge)
         except:
             raise Exception("match doesn't exit!")
 
@@ -63,8 +63,8 @@ def handle_tasks(params):
             match.kind = 1
             match.save()
 
-            task.status = 3
-            task.save()
+            challenge.status = 3
+            challenge.save()
         elif params["action"] == "assigned":
             match.kind = 2
             match.save()
@@ -104,7 +104,7 @@ def handle_contributor(params):
         person.save()
     elif params["action"] == "removed":
         project_url = params["repository"]["html_url"]
-        matches = TaskClaim.objects.filter(person__github_username=git_username,
+        matches = BountyClaim.objects.filter(person__github_username=git_username,
                                            task__detail_url__contains=project_url)
         matches.update(person=None)
     else:

@@ -5,7 +5,7 @@ from entitlements.exceptions import ValidationError
 import notification.tasks
 from commercial.models import ProductOwner
 from contribution_management.models import ContributorAgreement, ContributorAgreementAcceptance
-from matching.models import TaskDeliveryAttempt, TaskClaim, TaskDeliveryAttachment, CLAIM_TYPE_ACTIVE, \
+from matching.models import BountyDeliveryAttempt, BountyClaim, BountyDeliveryAttachment, CLAIM_TYPE_ACTIVE, \
     CLAIM_TYPE_FAILED, CLAIM_TYPE_DONE
 from notification.models import Notification
 from .types import *
@@ -29,13 +29,6 @@ class CreateProductMutation(graphene.Mutation, InfoType):
     @staticmethod
     @is_current_person
     def mutate(current_person, info, *args, product_input, file=None):
-
-        # check if user is in development mode
-        try:
-            validate_development_edition("product")
-        except ValidationError as e:
-            return CreateProductMutation(status=False, message=str(e))
-
         url = None
 
         if file:

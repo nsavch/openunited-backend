@@ -14,7 +14,7 @@ class Comment(MP_Node):
         return self.text
 
 
-class TaskComment(Comment):
+class ChallengeComment(Comment):
     pass
 
 
