@@ -29,12 +29,12 @@ class BountyClaim(TimeStampMixin, UUIDMixin):
     tracker = FieldTracker()
 
     def __str__(self):
-        return '{}: {} ({})'.format(self.task, self.person, self.kind)
+        return '{}: {} ({})'.format(self.bounty.challenge, self.person, self.kind)
 
 
 @receiver(post_save, sender=BountyClaim)
 def save_bounty_claim(sender, instance, created, **kwargs):
-    challenge = instance.challenge
+    challenge = instance.bounty.challenge
     reviewer = getattr(challenge, "reviewer", None)
     contributor = instance.person
     contributor_email = contributor.email_address
@@ -43,7 +43,7 @@ def save_bounty_claim(sender, instance, created, **kwargs):
     if not created:
         # contributor submit the work for review
         if instance.kind == CLAIM_TYPE_DONE and instance.tracker.previous("kind") is not CLAIM_TYPE_DONE:
-            challenge = instance.challenge
+            challenge = instance.bounty.challenge
             subject = f"The challenge \"{challenge.title}\" is ready to review"
             message = f"You can see the challenge here: {challenge.get_challenge_link()}"
             if reviewer:

@@ -387,11 +387,11 @@ class CreateTaskMutation(graphene.Mutation, InfoType):
 
         try:
             try:
-                category = TaskCategory.objects.get(pk=task_input.category)
+                category = Skill.objects.get(pk=task_input.category)
             except:
                 category = None
 
-            task = Task(
+            task = Challenge(
                 initiative=initiative,
                 capability=capability,
                 title=task_input.title,
@@ -767,7 +767,7 @@ class InReviewTaskMutation(InfoStatusMutation, graphene.Mutation):
                                                            Notification.EventType.TASK_IN_REVIEW,
                                                            receivers=[task.reviewer.id],
                                                            title=task.title,
-                                                           link=task.get_task_link())
+                                                           link=task.get_challenge_link())
 
             # call task save event to update tasklisting model
             task.status = Task.TASK_STATUS_IN_REVIEW
@@ -793,8 +793,8 @@ class ClaimTaskMutation(InfoStatusMutation, graphene.Mutation):
     claimed_task_name = graphene.String()
 
     @staticmethod
-    def get_is_need_agreement(user_id, task_id):
-        product = ProductTask.objects.get(task_id=task_id).product
+    def get_is_need_agreement(user_id, challenge_id):
+        product = ProductChallenge.objects.get(challenge_id=challenge_id).product
         agreements = ContributorAgreement.objects.filter(product=product)
 
         if agreements.count() > 0:
@@ -812,7 +812,8 @@ class ClaimTaskMutation(InfoStatusMutation, graphene.Mutation):
     @staticmethod
     @is_current_person
     def mutate(current_person, info, *args, task_id):
-        is_need_agreement = ClaimTaskMutation.get_is_need_agreement(current_person.id, task_id)
+        challenge_id = task_id
+        is_need_agreement = ClaimTaskMutation.get_is_need_agreement(current_person.id, challenge_id)
         if is_need_agreement:
             return ClaimTaskMutation(
                 success=True,
@@ -821,24 +822,24 @@ class ClaimTaskMutation(InfoStatusMutation, graphene.Mutation):
             )
 
         success = True
-        message = "The task was successfully claimed"
+        message = "The challenge was successfully claimed"
         if not current_person:
             return ClaimTaskMutation(success=False,
-                                     message="You cannot claim the task, please authenticate to the system")
+                                     message="You cannot claim the challenge, please authenticate to the system")
 
         try:
-            if get_right_task_status(task_id) == Task.TASK_STATUS_BLOCKED:
+            if get_right_task_status(challenge_id) == Challenge.CHALLENGE_STATUS_BLOCKED:
                 return ClaimTaskMutation(
                     success=False,
                     is_need_agreement=False,
                     message="You cannot claim the task, when it's blocked"
                 )
 
-            task = Task.objects.get(pk=task_id)
+            challenge = Challenge.objects.get(pk=challenge_id)
 
-            claimed_task = current_person.taskclaim_set.filter(kind=CLAIM_TYPE_ACTIVE).last()
-            if claimed_task:
-                claimed_task = claimed_task.task
+            claimed_bounty = current_person.bountyclaim_set.filter(kind=CLAIM_TYPE_ACTIVE).last()
+            if claimed_bounty:
+                claimed_challenge = claimed_bounty.bounty.challenge
                 return ClaimTaskMutation(
                     success=False,
                     is_need_agreement=False,
@@ -846,34 +847,34 @@ class ClaimTaskMutation(InfoStatusMutation, graphene.Mutation):
                         You cannot claim the task, you have an active task.
                         Please complete another task to claim a new task.
                     """,
-                    claimed_task_link=claimed_task.get_task_link(False),
-                    claimed_task_name=claimed_task.title
+                    claimed_task_link=claimed_challenge.get_challenge_link(False),
+                    claimed_task_name=claimed_challenge.title
                 )
 
-            # create a new task claim with "Active" status if task has "auto_approve_task_claims" value
-            if task.auto_approve_task_claims:
+            # create a new bounty claim with "Active" status if task has "auto_approve_task_claims" value
+            if challenge.auto_approve_task_claims:
                 try:
                     with transaction.atomic():
-                        task_claim_inst = TaskClaim(
+                        bounty_claim_inst = BountyClaim(
                             kind=CLAIM_TYPE_ACTIVE,
-                            task_id=task.id,
+                            bounty=challenge.bounty_set.get(),
                             person_id=current_person.id
                         )
-                        task_claim_inst.save()
+                        bounty_claim_inst.save()
                 except IntegrityError as e:
                     print(e, flush=True)
-                    return ClaimTaskMutation(success=False, message='TaskClaim duplicated', is_need_agreement=False)
+                    return ClaimTaskMutation(success=False, message='BountyClaim duplicated', is_need_agreement=False)
 
-            task.status = Task.TASK_STATUS_CLAIMED
-            task.updated_at = datetime.now()
-            task.save()
+            challenge.status = Challenge.CHALLENGE_STATUS_CLAIMED
+            challenge.updated_at = datetime.now()
+            challenge.save()
             notification.tasks.send_notification.delay([Notification.Type.EMAIL],
                                                        Notification.EventType.TASK_CLAIMED,
                                                        receivers=list(
-                                                           {task.created_by.id, task.reviewer.id, current_person.id}),
-                                                       task_id=task.id,
+                                                           {challenge.created_by.id, challenge.reviewer.id, current_person.id}),
+                                                       task_id=challenge.id,
                                                        user=current_person.slug)
-        except Task.DoesNotExist:
+        except Challenge.DoesNotExist:
             success = False
             message = "The task doesn't exist"
         except Person.DoesNotExist:

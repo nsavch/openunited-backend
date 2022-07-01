@@ -373,7 +373,7 @@ class Challenge(TimeStampMixin, UUIDMixin):
 
     def get_challenge_link(self, show_domain_name=True):
         try:
-            product = self.producttask_set.first().product
+            product = self.productchallenge_set.first().product
             product_owner = product.get_product_owner()
             domain_name = settings.FRONT_END_SERVER if show_domain_name else ""
             return f"{domain_name}/{product_owner.username}/{product.slug}/challenges/{self.published_id}"
@@ -414,7 +414,7 @@ def save_challenge(sender, instance, created, **kwargs):
                                                        Notification.EventType.TASK_STATUS_CHANGED,
                                                        receivers=[reviewer.id],
                                                        title=instance.title,
-                                                       link=instance.get_task_link())
+                                                       link=instance.get_challenge_link())
     except Person.DoesNotExist:
         pass
 
