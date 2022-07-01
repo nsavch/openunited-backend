@@ -19,9 +19,9 @@ def set_depends(depends, challenge_id):
 def get_right_task_status(challenge_id, challenge=None):
     depends_on_tasks = Challenge.objects. \
         filter(challengedepend__challenge=challenge_id). \
-        exclude(status=Challenge.Challenge_STATUS_DONE).exists()
+        exclude(status=Challenge.CHALLENGE_STATUS_DONE).exists()
     if depends_on_tasks:
-        return Challenge.Challenge_STATUS_BLOCKED
+        return Challenge.CHALLENGE_STATUS_BLOCKED
 
     if not challenge:
         challenge = Challenge.objects.get(pk=challenge_id)
@@ -59,7 +59,7 @@ def get_tasks_by_product(task_model, info, kwargs, only_count=False):
             product_id = Product.objects.get(slug=kwargs.get('product_slug')).id
 
         product_param_name = "producttask__product" \
-            if task_model.__name__ == Task.__name__ else "product_id"
+            if task_model.__name__ == Challenge.__name__ else "product_id"
 
         filter_data = {
             product_param_name: product_id,
@@ -86,11 +86,11 @@ def get_video_link(obj, link_attr_name):
 
 
 def get_task_category_listing(task_category_model, info, *args, **kwargs):
-    return SkillSerializer(task_category_model.get_active_categories(), many=True).data
+    return SkillSerializer(task_category_model.get_active_skills(), many=True).data
 
 
 def get_categories(task_category_model, info, *args, **kwargs):
-    return task_category_model.get_active_category_list()
+    return task_category_model.get_active_skill_list()
 
 
 def get_expertises_listing(expertise_model, info, *args, **kwargs):

@@ -36,7 +36,7 @@ class CreateTaskClaimMutation(graphene.Mutation):
                                                            Notification.EventType.TASK_SUBMITTED,
                                                            receivers=[challenge.reviewer.id],
                                                            task_title=challenge.title,
-                                                           task_link=challenge.get_task_link(),
+                                                           task_link=challenge.get_challenge_link(),
                                                            person_first_name=person.first_name)
         except:
             pass

@@ -38,8 +38,8 @@ class PersonType(DjangoObjectType):
         return self.user.username
 
     def resolve_claimed_task(self, info):
-        claimed_task = self.taskclaim_set.filter(kind=CLAIM_TYPE_ACTIVE).last()
-        return claimed_task.task if claimed_task else None
+        claimed_bounty = self.bountyclaim_set.filter(kind=CLAIM_TYPE_ACTIVE).last()
+        return claimed_bounty.bounty.challenge if claimed_bounty else None
 
 
 class SkillInput(graphene.InputObjectType):

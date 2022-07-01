@@ -83,8 +83,8 @@ class ProductQuery(ObjectType):
     @staticmethod
     def resolve_tags(*args, product_slug=None):
         if product_slug:
-            tasks = Challenge.objects.filter(producttask__product__slug=product_slug)
-            tags_for_product = Tag.objects.filter(task_tags__in=tasks).distinct()
+            tasks = Challenge.objects.filter(productchallenge__product__slug=product_slug)
+            tags_for_product = Tag.objects.filter(challenge_tags__in=tasks).distinct()
             return tags_for_product
 
         return Tag.objects.all()
@@ -275,7 +275,7 @@ class TaskQuery(ObjectType):
 
     @staticmethod
     def resolve_tasklisting_by_product_count(self, info, **kwargs):
-        return get_tasks_by_product(ChalengeListing, info, kwargs, True)
+        return get_tasks_by_product(ChallengeListing, info, kwargs, True)
 
     @staticmethod
     def resolve_task(*args, **kwargs):
@@ -283,7 +283,7 @@ class TaskQuery(ObjectType):
             published_id = kwargs.get('published_id')
             product_slug = kwargs.get('product_slug')
 
-            return ProductChallenge.objects.get(product__slug=product_slug, task__published_id=published_id).task
+            return ProductChallenge.objects.get(product__slug=product_slug, challenge__published_id=published_id).challenge
         except Exception as ex:
             print(ex)
             return None
@@ -291,7 +291,7 @@ class TaskQuery(ObjectType):
     @staticmethod
     def resolve_status_list(*args, **kwargs):
         res = []
-        for (idx, status) in Task.TASK_STATUS:
+        for (idx, status) in Challenge.CHALLENGE_STATUS:
             res.append(status)
         return res
 

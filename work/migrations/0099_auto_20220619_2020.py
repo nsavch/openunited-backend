@@ -36,6 +36,8 @@ def import_existing_data(apps, schema_editor):
         challenge.priority = task.priority
         challenge.published_id = task.published_id
         challenge.auto_approve_task_claims = task.auto_approve_task_claims
+        challenge.created_by = task.created_by
+        challenge.updated_by = task.updated_by
         challenge.comments_start = task.comments_start
         challenge.reviewer = task.reviewer
         challenge.product = task.product
