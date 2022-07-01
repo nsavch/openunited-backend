@@ -1,6 +1,6 @@
 from django.db.models import Count, Q
 
-from matching.models import TaskClaim, CLAIM_TYPE_DONE
+from matching.models import BountyClaim, CLAIM_TYPE_DONE
 from .types import *
 from work.models import CodeRepository
 from api.work.types import CodeRepositoryType
@@ -94,7 +94,7 @@ class PersonQuery(ObjectType):
         task_filters = {}
         # if filters:
             # task_filters = make_filters(filters)
-        task_claims = TaskClaim.objects.filter(person__slug=person_slug, kind=CLAIM_TYPE_DONE, **task_filters).order_by(
+        task_claims = BountyClaim.objects.filter(person__slug=person_slug, kind=CLAIM_TYPE_DONE, **task_filters).order_by(
             '-task__updated_at').select_related('task').all()
         tasks = [i.task for i in task_claims]
         return tasks
@@ -105,7 +105,7 @@ class PersonQuery(ObjectType):
         task_id = kwargs.get('task_id')
         person_slug = kwargs.get('person_slug')
         if task_id and person_slug:
-            task_claim = TaskClaim.objects.filter(task_id=task_id, kind=CLAIM_TYPE_DONE,
+            task_claim = BountyClaim.objects.filter(task_id=task_id, kind=CLAIM_TYPE_DONE,
                                                   person__slug=person_slug).last()
             return task_claim.delivery_messages.filter(kind=CLAIM_TYPE_DONE).last()
         return

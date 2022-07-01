@@ -13,9 +13,9 @@ class ExpertiseType(DjangoObjectType):
     class Meta:
         model = Expertise
     
-class TaskCategoryType(DjangoObjectType):
+class ChallengeSkillType(DjangoObjectType):
     class Meta:
-        model = TaskCategory
+        model = Skill
 
 class TaskType(DjangoObjectType):
     id = graphene.Int()
@@ -34,11 +34,11 @@ class TaskType(DjangoObjectType):
     preview_video_url = graphene.String()
 
     class Meta:
-        model = Task
+        model = Challenge
         convert_choices_to_enum = False
 
     def resolve_task_category(self, _):
-        return self.category if self.category else None
+        return self.skill if self.skill else None
 
     def resolve_task_expertise(self, _):
         if self.expertise.count():
@@ -47,15 +47,15 @@ class TaskType(DjangoObjectType):
             return None
 
     def resolve_assigned_to(self, _):
-        task_claim = self.taskclaim_set.filter(kind__in=[0, 1, 3]).last()
-        return task_claim.person if task_claim else None
+        bounty_claim = self.bounty_set.get().bountyclaim_set.filter(kind__in=[0, 1, 3]).last()
+        return bounty_claim.person if bounty_claim else None
 
     def resolve_in_review(self, _):
-        return self.taskclaim_set.filter(kind=CLAIM_TYPE_IN_REVIEW).count() > 0
+        return self.bounty_set.get().bountyclaim_set.filter(kind=CLAIM_TYPE_IN_REVIEW).count() > 0
 
     def resolve_priority(self, _):
         try:
-            return Task.TASK_PRIORITY[self.priority][1]
+            return Challenge.TASK_PRIORITY[self.priority][1]
         except:
             return None
 
@@ -66,43 +66,43 @@ class TaskType(DjangoObjectType):
                 return False
 
             return ProductPerson.objects.filter(
-                product=ProductTask.objects.get(task_id=self.id).product,
+                product=ProductChallenge.objects.get(challenge_id=self.id).product,
                 person=current_person,
                 right__in=[1, 2, 4]
             ).exists()
-        except (ProductPerson.DoesNotExist, ProductTask.DoesNotExist):
+        except (ProductPerson.DoesNotExist, ProductChallenge.DoesNotExist):
             return False
 
     def resolve_depend_on(self, _, **kwargs):
         try:
-            return Task.objects.filter(taskdepend__task=self.id)
-        except Task.DoesNotExist:
+            return Challenge.objects.filter(challengedepend__challenge=self.id)
+        except Challenge.DoesNotExist:
             return None
 
     def resolve_has_active_depends(self, info):
-        return Task.objects.filter(taskdepend__task=self.id).exclude(status=Task.TASK_STATUS_DONE).exists()
+        return Challenge.objects.filter(challengedepend__challenge=self.id).exclude(status=Challenge.CHALLENGE_STATUS_DONE).exists()
 
     def resolve_relatives(self, _, **kwargs):
         try:
-            relatives = list(map(lambda relative: relative.task_id, TaskDepend.objects.filter(depends_by=self.id)))
+            relatives = list(map(lambda relative: relative.challenge_id, ChallengeDepend.objects.filter(depends_by=self.id)))
 
-            return Task.objects.filter(pk__in=relatives)
-        except Task.DoesNotExist:
+            return Challenge.objects.filter(pk__in=relatives)
+        except Challenge.DoesNotExist:
             return None
 
     def resolve_status(self, _, **kwargs):
         return get_right_task_status(self.id, self)
 
     def resolve_link(self, _):
-        return self.get_task_link(False)
+        return self.get_challenge_link(False)
 
     def resolve_preview_video_url(self, _):
         return get_video_link(self, "video_url")
 
 
-class ProductTaskType(DjangoObjectType):
+class ProductChallengeType(DjangoObjectType):
     class Meta:
-        model = ProductTask
+        model = ProductChallenge
         convert_choices_to_enum = False
 
 class TaskInput(graphene.InputObjectType):
@@ -170,11 +170,11 @@ class ProductType(DjangoObjectType):
         model = Product
 
     def resolve_available_task_num(self, _):
-        return Task.objects.filter(initiative__product=self, status=2).count()
+        return Challenge.objects.filter(initiative__product=self, status=2).count()
 
     def resolve_total_task_num(self, _):
         if self is not None:
-            return Task.objects.filter(
+            return Challenge.objects.filter(
                 Q(capability__product=self) | Q(initiative__product=self)
             ).count()
         return None
@@ -243,7 +243,7 @@ class CapabilityType(DjangoObjectType):
 
     def resolve_tasks(self, _):
         if self is not None:
-            return Task.objects.filter(capability=self)
+            return Challenge.objects.filter(capability=self)
         return None
 
     def resolve_attachments(self, _):
@@ -333,24 +333,24 @@ class TaskListingType(DjangoObjectType):
     video_url = graphene.String()
 
     class Meta:
-        model = TaskListing
+        model = ChallengeListing
         convert_choices_to_enum = False
 
     def resolve_product(self, info):
         return self.product_data
 
     def resolve_category(self, info):
-        return self.task.category if self.task.category else None
+        return self.challenge.skill if self.challenge.skill else None
 
     def resolve_expertise(self, info):
-        if self.task.expertise.count():
-            return self.task.expertise.all()
+        if self.challenge.expertise.count():
+            return self.challenge.expertise.all()
         else:
             return None
 
     def resolve_priority(self, _):
         try:
-            return Task.TASK_PRIORITY[self.priority][1]
+            return Challenge.CHALLENGE_PRIORITY[self.priority][1]
         except:
             return None
 

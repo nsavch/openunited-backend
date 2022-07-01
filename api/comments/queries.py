@@ -1,20 +1,20 @@
 import graphene
 from graphene import ObjectType
 from api.comments.utils import resolve_comments
-from comments.models import TaskComment, IdeaComment, BugComment, CapabilityComment
+from comments.models import ChallengeComment, IdeaComment, BugComment, CapabilityComment
 from ideas_bugs.models import Idea, Bug
-from work.models import Task, Capability
+from work.models import Challenge, Capability
 
 
 class CommentsQuery(ObjectType):
-    task_comments = graphene.JSONString(object_id=graphene.Int())
+    challenge_comments = graphene.JSONString(object_id=graphene.Int())
     idea_comments = graphene.JSONString(object_id=graphene.Int())
     bug_comments = graphene.JSONString(object_id=graphene.Int())
     capability_comments = graphene.JSONString(object_id=graphene.Int())
 
     @staticmethod
-    def resolve_task_comments(*args, **kwargs):
-        return resolve_comments(kwargs.get("object_id"), Task, TaskComment)
+    def resolve_challenge_comments(*args, **kwargs):
+        return resolve_comments(kwargs.get("object_id"), Challenge, ChallengeComment)
 
     @staticmethod
     def resolve_idea_comments(*args, **kwargs):

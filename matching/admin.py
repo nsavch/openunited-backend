@@ -1,10 +1,10 @@
 from django.contrib import admin
-from matching.models import TaskClaim
+from matching.models import BountyClaim
 
 
-class TaskClaimAdmin(admin.ModelAdmin):
+class BountyClaimAdmin(admin.ModelAdmin):
     list_display = (
-        'task',
+        'bounty',
         'person',
         'kind',
         'created_at',
@@ -12,4 +12,4 @@ class TaskClaimAdmin(admin.ModelAdmin):
 
 
 # Register your models here.
-admin.site.register(TaskClaim, TaskClaimAdmin)
+admin.site.register(BountyClaim, BountyClaimAdmin)

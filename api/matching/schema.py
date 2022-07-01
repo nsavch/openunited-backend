@@ -2,7 +2,7 @@ import json
 import graphene
 from graphene_django.types import DjangoObjectType, ObjectType
 
-from matching.models import TaskClaim, TaskDeliveryAttempt
+from matching.models import BountyClaim, BountyDeliveryAttempt
 from .types import TaskClaimType, TaskDeliveryAttemptType
 from .mutations import CreateTaskClaimMutation
 
@@ -15,12 +15,12 @@ class TaskClaimQuery(ObjectType):
         id = kwargs.get('id')
 
         if id is not None:
-            return TaskClaim.objects.get(pk=id)
+            return BountyClaim.objects.get(pk=id)
 
         return None
 
     def resolve_matches(self, info, query=None, **kwargs):
-        qs = TaskClaim.objects.all()
+        qs = BountyClaim.objects.all()
         return qs
 
 
@@ -32,12 +32,12 @@ class TaskDeliveryAttemptQuery(ObjectType):
         id = kwargs.get('id')
 
         if id is not None:
-            return TaskDeliveryAttempt.objects.filter(kind=0, task_claim__task_id=id).last()
+            return BountyDeliveryAttempt.objects.filter(kind=0, task_claim__task_id=id).last()
 
         return None
 
     def resolve_attempts(self, info, query=None, **kwargs):
-        qs = TaskDeliveryAttempt.objects.all()
+        qs = BountyDeliveryAttempt.objects.all()
         return qs
 
 

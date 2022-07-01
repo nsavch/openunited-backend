@@ -1,5 +1,5 @@
 from django.contrib import admin
-from work.models import Product, Initiative, Task, Tag, Expertise, \
+from work.models import Product, Initiative, Challenge, Tag, Expertise, \
     Attachment, CodeRepository, CreateProductRequest, Capability
 
 
@@ -7,7 +7,7 @@ class InitiativeAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'product')
 
 
-class TaskAdmin(admin.ModelAdmin):
+class ChallengeAdmin(admin.ModelAdmin):
     list_display = ('id', 'title', 'short_description', 'initiative')
 
 
@@ -17,6 +17,6 @@ admin.site.register(CodeRepository)
 admin.site.register(CreateProductRequest)
 admin.site.register(Initiative, InitiativeAdmin)
 admin.site.register(Product)
-admin.site.register(Task, TaskAdmin)
+admin.site.register(Challenge, ChallengeAdmin)
 admin.site.register(Tag)
 admin.site.register(Expertise)
