@@ -59,6 +59,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('matching', '0016_auto_20220618_2252'),
+        ('work', '0099_auto_20220619_2020'),
     ]
 
     operations = [
