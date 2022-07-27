@@ -1,3 +1,4 @@
+import trace
 from django.db import IntegrityError
 from graphene_file_upload.scalars import Upload
 from entitlements.exceptions import ValidationError
@@ -352,11 +353,11 @@ class DeleteInitiativeMutation(graphene.Mutation):
         return DeleteInitiativeMutation(status=status)
 
 
-class CreateTaskMutation(graphene.Mutation, InfoType):
+class CreateChallengeMutation(graphene.Mutation, InfoType):
     class Arguments:
         input = TaskInput(required=True)
 
-    task = graphene.Field(TaskType)
+    challenge = graphene.Field(TaskType)
 
     @staticmethod
     @is_current_person
@@ -368,10 +369,10 @@ class CreateTaskMutation(graphene.Mutation, InfoType):
         try:
             product = Product.objects.get(slug=product_slug)
         except Product.DoesNotExist:
-            return CreateTaskMutation(task=None, status=False, message="Product doesn't exist")
+            return CreateChallengeMutation(task=None, status=False, message="Product doesn't exist")
 
         if not is_admin_or_manager(current_person, product_slug):
-            return CreateTaskMutation(task=None, status=False, message="You don't have permissions")
+            return CreateChallengeMutation(task=None, status=False, message="You don't have permissions")
 
         try:
             initiative = Initiative.objects.get(pk=task_input.initiative)
@@ -386,12 +387,9 @@ class CreateTaskMutation(graphene.Mutation, InfoType):
         status = int(task_input.status) if task_input.status else 0
 
         try:
-            try:
-                category = Skill.objects.get(pk=task_input.category)
-            except:
-                category = None
+            skill = None
 
-            task = Challenge(
+            challenge = Challenge(
                 initiative=initiative,
                 capability=capability,
                 title=task_input.title,
@@ -403,38 +401,56 @@ class CreateTaskMutation(graphene.Mutation, InfoType):
                 product=product,
                 video_url=task_input.get("video_url", None),
                 contribution_guide_id=task_input.get("contribution_guide", None),
-                category=category
+                skill=skill
             )
         except Person.DoesNotExist:
             raise Exception("Reviewer is a required field")
 
         if task_input.short_description is not None:
-            task.short_description = task_input.short_description
+            challenge.short_description = task_input.short_description
 
         if priority:
-            task.priority = priority
-        task.save()
+            challenge.priority = priority
+        challenge.save()
 
         expertises = task_input.get("expertise", "[]")
         expertises = json.loads(expertises)
         for exp in expertises:
             expertise = Expertise.objects.get(id=exp)
-            task.expertise.add(expertise)
+            challenge.expertise.add(expertise)
 
-        set_depends(task_input.depend_on, task.id)
+        set_depends(task_input.depend_on, challenge.id)
         if task_input.get('tag', None):
             for tag in task_input.tags:
                 if Tag.objects.filter(name=tag).count() <= 0:
                     Tag.objects.create(name=tag)
-                task.tag.add(Tag.objects.get(name=tag))
+                challenge.tag.add(Tag.objects.get(name=tag))
 
         if product_slug:
-            task.producttask_set.create(product=Product.objects.get(slug=product_slug))
+            challenge.productchallenge_set.create(product=Product.objects.get(slug=product_slug))
 
-        return CreateTaskMutation(task=task, status=True, message="Task has been created successfully")
+        # create necessary bounty for this challenge
+        bounty_skills = task_input.bounty_skills
+        bounty_skills = json.loads(bounty_skills)
+        
+        for bounty in bounty_skills:
+            bounty_skill = Skill.objects.get(id=bounty['skill']['id'])
+            try:
+                challenge_bounty = Bounty.objects.get(challenge=challenge, skill=bounty_skill)
+                challenge_bounty.points = bounty['points']
+            except Bounty.DoesNotExist:
+                challenge_bounty = Bounty(challenge=challenge, skill=bounty_skill, points=bounty['points'])
+            challenge_bounty.save()
+
+            challenge_bounty.expertise.clear()
+            for expertise in bounty['expertise']:
+                challenge_bounty.expertise.add(Expertise.objects.get(id=expertise['id']))
 
 
-class UpdateTaskMutation(graphene.Mutation, InfoType):
+        return CreateChallengeMutation(task=challenge, status=True, message="Task has been created successfully")
+
+
+class UpdateChallengeMutation(graphene.Mutation, InfoType):
     class Arguments:
         id = graphene.Int(required=True)
         input = TaskInput(required=True)
@@ -451,7 +467,7 @@ class UpdateTaskMutation(graphene.Mutation, InfoType):
             priority = task_input.get("priority", None)
 
             if not is_admin_or_manager(current_person, product_slug):
-                return UpdateTaskMutation(task=None, status=False, message="You don't have permissions")
+                return UpdateChallengeMutation(task=None, status=False, message="You don't have permissions")
 
             try:
                 initiative = Initiative.objects.get(pk=task_input.initiative)
@@ -463,94 +479,114 @@ class UpdateTaskMutation(graphene.Mutation, InfoType):
             except:
                 capability = None
 
-            try:
-                category = TaskCategory.objects.get(pk=task_input.category)
-            except:
-                category = None
-
-            task = Task.objects.get(pk=id)
+            skill = None
+            challenge = Challenge.objects.get(pk=id)
 
             if task_input.status is not None:
-                if int(task_input.status) == Task.TASK_STATUS_CLAIMED and task.taskclaim_set.filter(
+                if int(task_input.status) == challenge.CHALLENGE_STATUS_CLAIMED and challenge.taskclaim_set.filter(
                         kind__in=[0, 1]
                 ).count() <= 0:
-                    return UpdateTaskMutation(
+                    return UpdateChallengeMutation(
                         task=None, status=False,
-                        message="You cannot change status to claimed because the task is not assigned"
+                        message="You cannot change status to claimed because the challenge is not assigned"
                     )
 
+                has_claimed_bounty = False
+                for bounty in challenge.bounty_set.all():
+                    if bounty.bountyclaim_set.filter(kind__in=[0, 1]).count() > 0:
+                        has_claimed_bounty = True
+
                 if int(task_input.status) in [
-                    Task.TASK_STATUS_DRAFT, Task.TASK_STATUS_BLOCKED
-                ] and task.taskclaim_set.filter(kind__in=[0, 1]).count() > 0:
-                    return UpdateTaskMutation(
+                    Challenge.CHALLENGE_STATUS_DRAFT, Challenge.CHALLENGE_STATUS_BLOCKED
+                ] and has_claimed_bounty:
+                    return UpdateChallengeMutation(
                         task=None, status=False,
-                        message="You cannot change status to that because task is claimed"
+                        message="You cannot change status to that because challenge is claimed"
                     )
                 else:
                     # when making status to available, change all active task claims to failed status
-                    if int(task_input.status) == Task.TASK_STATUS_AVAILABLE:
-                        claimed_entries = task.taskclaim_set.filter(kind__in=[0,1])
-                        if claimed_entries.count() > 0:
-                            for ce in claimed_entries:
-                                ce.kind = 2
-                                ce.save()
+                    if int(task_input.status) == Challenge.CHALLENGE_STATUS_AVAILABLE and has_claimed_bounty:
+                        for bounty in challenge.bounty_set.all():
+                            claimed_bounty = bounty.bountyclaim_set.filter(kind__in=[0,1])
+                            if claimed_bounty.count() > 0:
+                                for cb in claimed_bounty:
+                                    cb.kind = 2
+                                    cb.save()
 
                     status = int(task_input.status)
             else:
-                status = Task.TASK_STATUS_DRAFT
+                status = Challenge.CHALLENGE_STATUS_DRAFT
 
-            task.initiative = initiative
-            task.capability = capability
-            task.category = category
-            task.title = task_input.title
-            task.description = task_input.description
-            task.status = status
-            task.video_url = task_input.get("video_url", None)
-            task.contribution_guide_id = task_input.get("contribution_guide", None)
+            challenge.initiative = initiative
+            challenge.capability = capability
+            challenge.skill = skill
+            challenge.title = task_input.title
+            challenge.description = task_input.description
+            challenge.status = status
+            challenge.video_url = task_input.get("video_url", None)
+            challenge.contribution_guide_id = task_input.get("contribution_guide", None)
 
             if priority:
-                task.priority = priority
+                challenge.priority = priority
 
             try:
-                task.reviewer = Person.objects.get(user__username=task_input.reviewer)
+                challenge.reviewer = Person.objects.get(user__username=task_input.reviewer)
             except:
                 raise Exception("Reviewer is a required field")
 
-            task.updated_by = current_person
+            challenge.updated_by = current_person
 
-            set_depends(depends=task_input.depend_on, task_id=id)
+            set_depends(depends=task_input.depend_on, challenge_id=id)
 
             if task_input.tags is not None:
-                task.tag.clear()
+                challenge.tag.clear()
 
                 for tag in task_input.tags:
                     if Tag.objects.filter(name=tag).count() <= 0:
                         Tag.objects.create(name=tag)
 
-                    task.tag.add(Tag.objects.get(name=tag))
+                    challenge.tag.add(Tag.objects.get(name=tag))
 
             if task_input.short_description is not None:
-                task.short_description = task_input.short_description
-            task.save()
+                challenge.short_description = task_input.short_description
+            challenge.save()
 
             expertises = task_input.get("expertise", "[]")
             expertises = json.loads(expertises)
 
             # remove any old expertise
-            if task.expertise.count():
-                task.expertise.through.objects.all().delete()
+            challenge.expertise.clear()
             
             for exp in expertises:
                 expertise = Expertise.objects.get(id=exp)
-                task.expertise.add(expertise)
+                challenge.expertise.add(expertise)
 
-            return UpdateTaskMutation(task=None, status=True, message="Task has been updated successfully")
+            # create/update necessary bounty for this challenge
+            bounty_skills = task_input.bounty_skills
+            bounty_skills = json.loads(bounty_skills)
+            
+            for bounty in bounty_skills:
+                bounty_skill = Skill.objects.get(id=bounty['skill']['id'])
+                try:
+                    challenge_bounty = Bounty.objects.get(challenge=challenge, skill=bounty_skill)
+                    challenge_bounty.points = bounty['points']
+                except Bounty.DoesNotExist:
+                    challenge_bounty = Bounty(challenge=challenge, skill=bounty_skill, points=bounty['points'])
+                challenge_bounty.save()
+
+                challenge_bounty.expertise.clear()
+                for expertise in bounty['expertise']:
+                    challenge_bounty.expertise.add(Expertise.objects.get(id=expertise['id']))
+
+            return UpdateChallengeMutation(task=None, status=True, message="Challenge has been updated successfully")
         except Exception as ex:
             print(ex)
-            return UpdateTaskMutation(task=None, status=False, message="Error with task updating")
+            import traceback
+            traceback.print_exc()
+            return UpdateChallengeMutation(task=None, status=False, message="Error with challenge updating")
 
 
-class DeleteTaskMutation(graphene.Mutation):
+class DeleteChallengeMutation(graphene.Mutation):
     class Arguments:
         id = graphene.Int(required=True)
 
@@ -561,13 +597,13 @@ class DeleteTaskMutation(graphene.Mutation):
     def mutate(root, info, id, input=None):
         status = False
         try:
-            task = Task.objects.get(pk=id)
-            task.delete()
+            challenge = Challenge.objects.get(pk=id)
+            challenge.delete()
             status = True
-            return DeleteTaskMutation(status=status, task_id=id)
+            return DeleteChallengeMutation(status=status, task_id=id)
         except:
             pass
-        return DeleteTaskMutation(status=status)
+        return DeleteChallengeMutation(status=status)
 
 
 class CreateCodeRepositoryMutation(graphene.Mutation):
@@ -784,7 +820,7 @@ class InReviewTaskMutation(InfoStatusMutation, graphene.Mutation):
 
 class ClaimTaskMutation(InfoStatusMutation, graphene.Mutation):
     class Arguments:
-        task_id = graphene.Int(required=True)
+        bounty_id = graphene.Int(required=True)
 
     success = graphene.Boolean()
     is_need_agreement = graphene.Boolean()
@@ -811,31 +847,32 @@ class ClaimTaskMutation(InfoStatusMutation, graphene.Mutation):
 
     @staticmethod
     @is_current_person
-    def mutate(current_person, info, *args, task_id):
-        challenge_id = task_id
-        is_need_agreement = ClaimTaskMutation.get_is_need_agreement(current_person.id, challenge_id)
-        if is_need_agreement:
-            return ClaimTaskMutation(
-                success=True,
-                message="Please, agree Contribution License Agreement firstly",
-                is_need_agreement=is_need_agreement
-            )
-
-        success = True
-        message = "The challenge was successfully claimed"
-        if not current_person:
-            return ClaimTaskMutation(success=False,
-                                     message="You cannot claim the challenge, please authenticate to the system")
-
+    def mutate(current_person, info, *args, bounty_id):
         try:
+            bounty = Bounty.objects.get(id=bounty_id)
+            challenge = bounty.challenge
+            challenge_id = challenge.id
+
+            is_need_agreement = ClaimTaskMutation.get_is_need_agreement(current_person.id, challenge_id)
+            if is_need_agreement:
+                return ClaimTaskMutation(
+                    success=True,
+                    message="Please, agree Contribution License Agreement first",
+                    is_need_agreement=is_need_agreement
+                )
+
+            success = True
+            message = "The bounty was successfully claimed"
+            if not current_person:
+                return ClaimTaskMutation(success=False,
+                                        message="You cannot claim the bounty, please authenticate to the system")
+
             if get_right_task_status(challenge_id) == Challenge.CHALLENGE_STATUS_BLOCKED:
                 return ClaimTaskMutation(
                     success=False,
                     is_need_agreement=False,
-                    message="You cannot claim the task, when it's blocked"
+                    message="You cannot claim the bounty, when it is blocked"
                 )
-
-            challenge = Challenge.objects.get(pk=challenge_id)
 
             claimed_bounty = current_person.bountyclaim_set.filter(kind=CLAIM_TYPE_ACTIVE).last()
             if claimed_bounty:
@@ -844,8 +881,8 @@ class ClaimTaskMutation(InfoStatusMutation, graphene.Mutation):
                     success=False,
                     is_need_agreement=False,
                     message="""
-                        You cannot claim the task, you have an active task.
-                        Please complete another task to claim a new task.
+                        You cannot claim the bounty because you have an active bounty.
+                        Please complete current bounty first to claim a new bounty.
                     """,
                     claimed_task_link=claimed_challenge.get_challenge_link(False),
                     claimed_task_name=claimed_challenge.title
@@ -857,17 +894,21 @@ class ClaimTaskMutation(InfoStatusMutation, graphene.Mutation):
                     with transaction.atomic():
                         bounty_claim_inst = BountyClaim(
                             kind=CLAIM_TYPE_ACTIVE,
-                            bounty=challenge.bounty_set.get(),
+                            bounty=bounty,
                             person_id=current_person.id
                         )
                         bounty_claim_inst.save()
+
+                        challenge.status = Challenge.CHALLENGE_STATUS_CLAIMED
+                        challenge.updated_at = datetime.now()
+                        challenge.save()
+
                 except IntegrityError as e:
                     print(e, flush=True)
-                    return ClaimTaskMutation(success=False, message='BountyClaim duplicated', is_need_agreement=False)
+                    import traceback
+                    traceback.print_exc()
+                    return ClaimTaskMutation(success=False, message='There was a problem claiming this bounty', is_need_agreement=False)
 
-            challenge.status = Challenge.CHALLENGE_STATUS_CLAIMED
-            challenge.updated_at = datetime.now()
-            challenge.save()
             notification.tasks.send_notification.delay([Notification.Type.EMAIL],
                                                        Notification.EventType.TASK_CLAIMED,
                                                        receivers=list(
@@ -876,7 +917,10 @@ class ClaimTaskMutation(InfoStatusMutation, graphene.Mutation):
                                                        user=current_person.slug)
         except Challenge.DoesNotExist:
             success = False
-            message = "The task doesn't exist"
+            message = "The challenge doesn't exist"
+        except Bounty.DoesNotExist:
+            success = False
+            message = "The Bounty doesn't exist"
         except Person.DoesNotExist:
             success = False
             message = "The person doesn't exist"
@@ -1053,9 +1097,9 @@ class WorkMutations(graphene.ObjectType):
     create_initiative = CreateInitiativeMutation.Field()
     update_initiative = UpdateInitiativeMutation.Field()
     delete_initiative = DeleteInitiativeMutation.Field()
-    create_task = CreateTaskMutation.Field()
-    update_task = UpdateTaskMutation.Field()
-    delete_task = DeleteTaskMutation.Field()
+    create_challenge = CreateChallengeMutation.Field()
+    update_challenge = UpdateChallengeMutation.Field()
+    delete_challenge = DeleteChallengeMutation.Field()
     create_code_repository = CreateCodeRepositoryMutation.Field()
     create_attachment = CreateAttachmentMutation.Field()
     delete_attachment = DeleteAttachmentMutation.Field()

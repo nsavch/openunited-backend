@@ -4,10 +4,18 @@ from graphene_django.types import DjangoObjectType, ObjectType
 from api.talent.types import PersonType
 from api.utils import get_current_person
 from api.work.utils import get_right_task_status, get_video_link
-from matching.models import CLAIM_TYPE_IN_REVIEW
+from matching.models import CLAIM_TYPE_IN_REVIEW, BountyClaim
 from work.models import *
 from talent.models import ProductPerson
 
+class BountyType(DjangoObjectType):
+    class Meta:
+        model = Bounty
+
+class BountyClaimType(DjangoObjectType):
+    class Meta:
+        model = BountyClaim
+        convert_choices_to_enum = False
 
 class ExpertiseType(DjangoObjectType):
     class Meta:
@@ -24,8 +32,9 @@ class TaskType(DjangoObjectType):
     can_edit = graphene.Boolean(user_id=graphene.Int())
     assigned_to = graphene.Field(PersonType)
     in_review = graphene.Boolean()
-    task_category = graphene.String()
-    task_expertise = graphene.List(ExpertiseType)
+    skill = graphene.List(graphene.String)
+    bounty = graphene.List(BountyType)
+    bounty_claim = graphene.List(BountyClaimType)
     depend_on = graphene.List(lambda: TaskType)
     relatives = graphene.List(lambda: TaskType)
     status = graphene.Int()
@@ -37,25 +46,54 @@ class TaskType(DjangoObjectType):
         model = Challenge
         convert_choices_to_enum = False
 
-    def resolve_task_category(self, _):
-        return self.skill if self.skill else None
+    def resolve_skill(self, _):
+        challenge_skills = []
+        for bounty in self.bounty_set.all():
+            if bounty.skill:
+                challenge_skills.append(bounty.skill.name)
+        return challenge_skills
 
-    def resolve_task_expertise(self, _):
-        if self.expertise.count():
-            return self.expertise.all()
-        else:
-            return None
+    # def resolve_expertise(self, _):
+    #     if self.expertise.count():
+    #         return self.expertise.all()
+    #     else:
+    #         return None
+
+    def resolve_bounty(self, _):
+        all_bounty = []
+        for bounty in self.bounty_set.all():
+            if bounty.skill:
+                all_bounty.append(bounty)
+        return all_bounty
+
+    def resolve_bounty_claim(self, _):
+        all_bounty_claim = []
+        for bounty in self.bounty_set.all():
+            bounty_claim = bounty.bountyclaim_set.filter(kind__in=[0, 1, 3]).last()
+            if bounty_claim:
+                all_bounty_claim.append(bounty_claim)
+        return all_bounty_claim
 
     def resolve_assigned_to(self, _):
-        bounty_claim = self.bounty_set.get().bountyclaim_set.filter(kind__in=[0, 1, 3]).last()
-        return bounty_claim.person if bounty_claim else None
+        assigned_to = None
+        for bounty in self.bounty_set.all():
+            bounty_claim = bounty.bountyclaim_set.filter(kind__in=[0, 1, 3]).last()
+            if bounty_claim:
+                assigned_to = bounty_claim.person
+                break
+        return assigned_to
 
     def resolve_in_review(self, _):
-        return self.bounty_set.get().bountyclaim_set.filter(kind=CLAIM_TYPE_IN_REVIEW).count() > 0
+        is_in_review = False
+        for bounty in self.bounty_set.all():
+            if bounty.bountyclaim_set.filter(kind=CLAIM_TYPE_IN_REVIEW).count() > 0:
+                is_in_review = True
+                break
+        return is_in_review
 
     def resolve_priority(self, _):
         try:
-            return Challenge.TASK_PRIORITY[self.priority][1]
+            return Challenge.CHALLENGE_PRIORITY[self.priority][1]
         except:
             return None
 
@@ -114,8 +152,9 @@ class TaskInput(graphene.InputObjectType):
     status = graphene.Int(required=False)
     product_slug = graphene.String(required=True)
     tags = graphene.List(graphene.String, required=False)
-    category = graphene.String()
+    skill = graphene.String()
     expertise = graphene.String()
+    bounty_skills = graphene.String()
     depend_on = graphene.List(graphene.Int, required=False)
     reviewer = graphene.String(required=True)
     video_url = graphene.String(required=False)

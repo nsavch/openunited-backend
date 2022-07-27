@@ -4,9 +4,10 @@ import json
 from random import randrange
 
 from django.core.management import BaseCommand
+from api.work.types import ChallengeSkillType
 
 from commercial.models import Organisation, ProductOwner
-from matching.models import TaskClaim, TaskDeliveryAttempt
+from matching.models import BountyClaim, BountyDeliveryAttempt
 from notification.models import EmailNotification, Notification
 from talent.models import PersonProfile, Review
 from users.models import User
@@ -206,17 +207,17 @@ class Command(BaseCommand):
         return [product_owner0, product_owner1, product_owner2]
 
     def create_matches(self, users):
-        tasks = Task.objects.all()
+        tasks = Challenge.objects.all()
         num_of_users = len(users) - 1
         index = 0
 
         for task in tasks:
             person = users[index % num_of_users]
-            tc, created = TaskClaim.objects.get_or_create(task=task,
+            tc, created = BountyClaim.objects.get_or_create(challenge=task,
                                                           person=person,
-                                                          kind=TaskClaim.CLAIM_TYPE[index % 3][0])
+                                                          kind=BountyClaim.CLAIM_TYPE[index % 3][0])
 
-            TaskDeliveryAttempt.objects.get_or_create(task_claim=tc,
+            BountyDeliveryAttempt.objects.get_or_create(bounty_claim=tc,
                                                       person=person,
                                                       kind=1, delivery_message='')
             index = index + 1
@@ -356,7 +357,7 @@ class Command(BaseCommand):
         # only import if we do not have any data
         if not Expertise.objects.count():
             with open('api/management/commands/data/ou-task-category-and-expertise.csv') as csv_file:
-                print('Creating category and expertise...')
+                print('Creating skill and expertise...')
                 csv_reader = csv.reader(csv_file, delimiter=',')
                 line_count = 0
                 for row in csv_reader:
@@ -372,13 +373,13 @@ class Command(BaseCommand):
                         # print('Category: %s (%s)' % (cat_name, cat_id))
 
                         try:
-                            category = TaskCategory.objects.get(id=cat_id)
+                            skill = Skill.objects.get(id=cat_id)
                         except:
                             # task category does not exist
                             # create it first
-                            category = TaskCategory(id=cat_id, parent_id=cat_parent,
+                            skill = Skill(id=cat_id, parent_id=cat_parent,
                                                     active=active, selectable=selectable, name=cat_name)
-                            category.save()
+                            skill.save()
 
                         if len(expertise) > 0:
                             expertise = json.loads(expertise)
@@ -387,18 +388,18 @@ class Command(BaseCommand):
                                 # print('Expertise root:', key)
 
                                 exp = self.save_expertise(
-                                    category, key, 0, None)
+                                    skill, key, 0, None)
 
                                 if type(expertise[key]) == list:
                                     for val in expertise[key]:
                                         # print('Child:', val)
                                         child_exp = self.save_expertise(
-                                            category, val, 1, exp)
+                                            skill, val, 1, exp)
                                 else:
                                     # print('Child: ', expertise[key])
                                     child_exp = self.save_expertise(
-                                        category, expertise[key], 1, exp)
-                print('Category and expertise created successfully.')
+                                        skill, expertise[key], 1, exp)
+                print('Skill and expertise created successfully.')
 
     def create_notification(self):
         EmailNotification.objects.get_or_create(

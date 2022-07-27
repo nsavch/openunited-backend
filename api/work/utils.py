@@ -10,10 +10,10 @@ def set_depends(depends, challenge_id):
         ChallengeDepend.objects.filter(challenge=Challenge.objects.get(pk=challenge_id)).delete()
 
         for depend in depends:
-            new_task_depend = ChallengeDepend(
+            new_challenge_depend = ChallengeDepend(
                 challenge=Challenge.objects.get(pk=challenge_id), depends_by=Challenge.objects.get(pk=int(depend))
             )
-            new_task_depend.save()
+            new_challenge_depend.save()
 
 
 def get_right_task_status(challenge_id, challenge=None):

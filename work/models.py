@@ -391,11 +391,11 @@ def save_challenge(sender, instance, created, **kwargs):
         if instance.status == Challenge.CHALLENGE_STATUS_DONE and \
             instance.tracker.previous('status') != Challenge.CHALLENGE_STATUS_DONE:
             try:
-                task_claim = instance.taskclaim_set.filter(kind=0).first()
-                if task_claim:
+                bounty_claim = instance.taskclaim_set.filter(kind=0).first()
+                if bounty_claim:
                     product_person_data = dict(
                         product_id=instance.product.id,
-                        person_id=task_claim.person.id
+                        person_id=bounty_claim.person.id
                     )
                     if not ProductPerson.objects.filter(**product_person_data,
                                                         right__in=[ProductPerson.PERSON_TYPE_CONTRIBUTOR,
@@ -417,6 +417,12 @@ def save_challenge(sender, instance, created, **kwargs):
                                                        link=instance.get_challenge_link())
     except Person.DoesNotExist:
         pass
+    
+    
+    has_bountyclaim_in_review = False
+    for bounty in instance.bounty_set.all():
+        if bounty.bountyclaim_set.filter(kind=0).count() > 0:
+            has_bountyclaim_in_review = True
 
     challenge_listing_data = dict(
         title=instance.title,
@@ -442,22 +448,32 @@ def save_challenge(sender, instance, created, **kwargs):
             "video_url": instance.product.video_url
         } if instance.product else None,
         product=instance.product,
-        has_active_depends=Challenge.objects.filter(taskdepend__task=instance.id).exclude(
+        has_active_depends=Challenge.objects.filter(challengedepend__challenge=instance.id).exclude(
             status=Challenge.CHALLENGE_STATUS_DONE).exists(),
         initiative_id=instance.initiative.id if instance.initiative else None,
         initiative_data=to_dict(instance.initiative) if instance.initiative else None,
         capability_id=instance.capability.id if instance.capability is not None else None,
         capability_data=to_dict(instance.capability) if instance.capability else None,
-        in_review=instance.taskclaim_set.filter(kind=0).count() > 0,
+        in_review=has_bountyclaim_in_review,
         video_url=instance.video_url,
     )
 
-    task_claim = instance.taskclaim_set.filter(kind__in=[0, 1]).first()
+    # task_claim = instance.taskclaim_set.filter(kind__in=[0, 1]).first()
+    all_bounty_claim = []
+    for bounty in instance.bounty_set.all():
+        bounty_claim = bounty.bountyclaim_set.filter(kind__in=[0, 1]).first()
+        if bounty_claim:
+            all_bounty_claim.append({
+                'bounty_claim': bounty_claim.id, 
+                'person': get_person_data(bounty_claim.person),
+                'person_id': '%s'%bounty_claim.person.id})
 
-    if task_claim:
-        challenge_listing_data["task_claim"] = to_dict(task_claim)
-        challenge_listing_data["assigned_to_data"] = get_person_data(task_claim.person)
-        challenge_listing_data["assigned_to_person_id"] = task_claim.person.id if task_claim.person else None
+    if len(all_bounty_claim) > 0:
+        challenge_listing_data["task_claim"] = all_bounty_claim
+        # challenge_listing_data["assigned_to_data"] = get_person_data(task_claim.person)
+        # challenge_listing_data["assigned_to_person_id"] = task_claim.person.id if task_claim.person else None
+        challenge_listing_data["assigned_to_data"] = None
+        challenge_listing_data["assigned_to_person_id"] = None
     else:
         challenge_listing_data["task_claim"] = None
         challenge_listing_data["assigned_to_data"] = None
@@ -465,12 +481,12 @@ def save_challenge(sender, instance, created, **kwargs):
 
     if created:
         product = instance.product
-        last_product_task = None
+        last_product_challenge = None
         if product:
-            last_product_task = Challenge.objects \
-                .filter(producttask__product=product) \
+            last_product_challenge = Challenge.objects \
+                .filter(productchallenge__product=product) \
                 .order_by('-published_id').last()
-        published_id = last_product_task.published_id + 1 if last_product_task else 1
+        published_id = last_product_challenge.published_id + 1 if last_product_challenge else 1
         instance.published_id = published_id
         instance.save()
 
