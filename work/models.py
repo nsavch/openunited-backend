@@ -505,11 +505,29 @@ def save_challenge(sender, instance, created, **kwargs):
 
 
 class Bounty(TimeStampMixin):
+    BOUNTY_STATUS_DRAFT = 0
+    BOUNTY_STATUS_BLOCKED = 1
+    BOUNTY_STATUS_AVAILABLE = 2
+    BOUNTY_STATUS_CLAIMED = 3
+    BOUNTY_STATUS_DONE = 4
+    BOUNTY_STATUS_IN_REVIEW = 5
+
+    BOUNTY_STATUS = (
+        (BOUNTY_STATUS_DRAFT, "Draft"),
+        (BOUNTY_STATUS_BLOCKED, "Blocked"),
+        (BOUNTY_STATUS_AVAILABLE, "Available"),
+        (BOUNTY_STATUS_CLAIMED, "Claimed"),
+        (BOUNTY_STATUS_DONE, "Done"),
+        (BOUNTY_STATUS_IN_REVIEW, "In review")
+    )
+
     challenge = models.ForeignKey(Challenge, on_delete=models.CASCADE)
     skill = models.ForeignKey(Skill, on_delete=models.CASCADE, related_name="bounty_skill",
                                  blank=True, null=True, default=None)
     expertise = models.ManyToManyField(Expertise, related_name="bounty_expertise")
     points = models.IntegerField()
+    status = models.IntegerField(choices=BOUNTY_STATUS, default=BOUNTY_STATUS_AVAILABLE)
+    is_active = models.BooleanField(default=True)
 
 
 class ChallengeListing(models.Model):

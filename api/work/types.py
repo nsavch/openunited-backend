@@ -11,6 +11,7 @@ from talent.models import ProductPerson
 class BountyType(DjangoObjectType):
     class Meta:
         model = Bounty
+        convert_choices_to_enum = False
 
 class BountyClaimType(DjangoObjectType):
     class Meta:
@@ -48,27 +49,21 @@ class TaskType(DjangoObjectType):
 
     def resolve_skill(self, _):
         challenge_skills = []
-        for bounty in self.bounty_set.all():
+        for bounty in self.bounty_set.filter(is_active=True):
             if bounty.skill:
                 challenge_skills.append(bounty.skill.name)
         return challenge_skills
 
-    # def resolve_expertise(self, _):
-    #     if self.expertise.count():
-    #         return self.expertise.all()
-    #     else:
-    #         return None
-
     def resolve_bounty(self, _):
         all_bounty = []
-        for bounty in self.bounty_set.all():
+        for bounty in self.bounty_set.filter(is_active=True):
             if bounty.skill:
                 all_bounty.append(bounty)
         return all_bounty
 
     def resolve_bounty_claim(self, _):
         all_bounty_claim = []
-        for bounty in self.bounty_set.all():
+        for bounty in self.bounty_set.filter(is_active=True):
             bounty_claim = bounty.bountyclaim_set.filter(kind__in=[0, 1, 3]).last()
             if bounty_claim:
                 all_bounty_claim.append(bounty_claim)
@@ -76,7 +71,7 @@ class TaskType(DjangoObjectType):
 
     def resolve_assigned_to(self, _):
         assigned_to = None
-        for bounty in self.bounty_set.all():
+        for bounty in self.bounty_set.filter(is_active=True):
             bounty_claim = bounty.bountyclaim_set.filter(kind__in=[0, 1, 3]).last()
             if bounty_claim:
                 assigned_to = bounty_claim.person
@@ -85,7 +80,7 @@ class TaskType(DjangoObjectType):
 
     def resolve_in_review(self, _):
         is_in_review = False
-        for bounty in self.bounty_set.all():
+        for bounty in self.bounty_set.filter(is_active=True):
             if bounty.bountyclaim_set.filter(kind=CLAIM_TYPE_IN_REVIEW).count() > 0:
                 is_in_review = True
                 break

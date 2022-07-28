@@ -483,18 +483,16 @@ class UpdateChallengeMutation(graphene.Mutation, InfoType):
             challenge = Challenge.objects.get(pk=id)
 
             if task_input.status is not None:
-                if int(task_input.status) == challenge.CHALLENGE_STATUS_CLAIMED and challenge.taskclaim_set.filter(
-                        kind__in=[0, 1]
-                ).count() <= 0:
-                    return UpdateChallengeMutation(
-                        task=None, status=False,
-                        message="You cannot change status to claimed because the challenge is not assigned"
-                    )
-
                 has_claimed_bounty = False
                 for bounty in challenge.bounty_set.all():
                     if bounty.bountyclaim_set.filter(kind__in=[0, 1]).count() > 0:
                         has_claimed_bounty = True
+
+                if int(task_input.status) == challenge.CHALLENGE_STATUS_CLAIMED and not has_claimed_bounty:
+                    return UpdateChallengeMutation(
+                        task=None, status=False,
+                        message="You cannot change status to claimed because the challenge is not assigned"
+                    )
 
                 if int(task_input.status) in [
                     Challenge.CHALLENGE_STATUS_DRAFT, Challenge.CHALLENGE_STATUS_BLOCKED
@@ -565,6 +563,7 @@ class UpdateChallengeMutation(graphene.Mutation, InfoType):
             bounty_skills = task_input.bounty_skills
             bounty_skills = json.loads(bounty_skills)
             
+            active_bounty_list = []
             for bounty in bounty_skills:
                 bounty_skill = Skill.objects.get(id=bounty['skill']['id'])
                 try:
@@ -573,10 +572,18 @@ class UpdateChallengeMutation(graphene.Mutation, InfoType):
                 except Bounty.DoesNotExist:
                     challenge_bounty = Bounty(challenge=challenge, skill=bounty_skill, points=bounty['points'])
                 challenge_bounty.save()
+                active_bounty_list.append(challenge_bounty.id)
 
                 challenge_bounty.expertise.clear()
                 for expertise in bounty['expertise']:
                     challenge_bounty.expertise.add(Expertise.objects.get(id=expertise['id']))
+            
+            # now check if any bounty was removed in this update
+            # if so, then set there is_active state to False
+            old_bounty = challenge.bounty_set.exclude(id__in=active_bounty_list).filter(is_active=True)
+            for ob in old_bounty:
+                ob.is_active = False
+                ob.save()
 
             return UpdateChallengeMutation(task=None, status=True, message="Challenge has been updated successfully")
         except Exception as ex:
@@ -732,7 +739,7 @@ class ChangeTaskPriorityMutation(graphene.Mutation):
             else:
                 raise Exception
 
-            updated_task = Task.objects.get(pk=task_id)
+            updated_task = Challenge.objects.get(pk=task_id)
             updated_task.priority = priority
             updated_task.save()
             return ChangeTaskPriorityMutation(status=True)
@@ -740,36 +747,44 @@ class ChangeTaskPriorityMutation(graphene.Mutation):
             return ChangeTaskPriorityMutation(status=False)
 
 
-class LeaveTaskMutation(InfoStatusMutation, graphene.Mutation):
+class LeaveBountyMutation(InfoStatusMutation, graphene.Mutation):
     class Arguments:
-        task_id = graphene.Int(required=True)
+        bounty_id = graphene.Int(required=True)
 
     @staticmethod
     @is_current_person
     def mutate(current_person, info, *args, **kwargs):
         try:
-            task_id = kwargs.get("task_id")
-            task = Task.objects.get(id=task_id)
-            task_claim = task.taskclaim_set.filter(person=current_person,
+            bounty_id = kwargs.get("bounty_id")
+            bounty = Bounty.objects.get(id=bounty_id)
+            bounty_claim = bounty.bountyclaim_set.filter(person=current_person,
                                                    kind__in=[CLAIM_TYPE_DONE, CLAIM_TYPE_ACTIVE]).all()
-            if len(task_claim) == 1:
-                t_c = task_claim[0]
-                t_c.kind = CLAIM_TYPE_FAILED
-                t_c.save()
-            elif len(task_claim) > 1:
-                task_claim.update(kind=CLAIM_TYPE_FAILED)
+            if len(bounty_claim) == 1:
+                b_c = bounty_claim[0]
+                b_c.kind = CLAIM_TYPE_FAILED
+                b_c.save()
+            elif len(bounty_claim) > 1:
+                bounty_claim.update(kind=CLAIM_TYPE_FAILED)
             else:
-                return LeaveTaskMutation(success=False, message="The task claim was not found")
+                return LeaveBountyMutation(success=False, message="The bounty claim was not found")
 
-            task.status = Task.TASK_STATUS_AVAILABLE
-            task.updated_at = datetime.now()
-            task.save()
+            # set bounty status to available            
+            bounty.status = Bounty.BOUNTY_STATUS_AVAILABLE
+            bounty.save()
 
-            return LeaveTaskMutation(success=True, message="The task was successfully unassigned")
-        except Task.DoesNotExist:
-            return LeaveTaskMutation(success=False, message="The task doesn't exist")
-        except TaskClaim.DoesNotExist:
-            return LeaveTaskMutation(success=False, message="The task claim doesn't exist")
+            # check if there is any bounty with calimed status
+            challenge = bounty.challenge
+            if challenge.bounty_set.filter(
+                status__in=[Bounty.BOUNTY_STATUS_CLAIMED, Bounty.BOUNTY_STATUS_IN_REVIEW, Bounty.BOUNTY_STATUS_DONE]
+            ).count() == 0:
+                challenge.status = Challenge.CHALLENGE_STATUS_AVAILABLE
+                challenge.save()
+
+            return LeaveBountyMutation(success=True, message="The bounty was successfully unassigned")
+        except Bounty.DoesNotExist:
+            return LeaveBountyMutation(success=False, message="The bounty doesn't exist")
+        except BountyClaim.DoesNotExist:
+            return LeaveBountyMutation(success=False, message="The bounty claim doesn't exist")
 
 
 class InReviewTaskMutation(InfoStatusMutation, graphene.Mutation):
@@ -782,7 +797,7 @@ class InReviewTaskMutation(InfoStatusMutation, graphene.Mutation):
     @is_current_person
     def mutate(current_person, info, *args, task_id, delivery_message, file_list):
         try:
-            task = Task.objects.get(id=task_id)
+            task = Challenge.objects.get(id=task_id)
 
             task_claim = task.taskclaim_set.filter(person=current_person, kind=CLAIM_TYPE_ACTIVE, task=task).last()
             if not task_claim:
@@ -814,11 +829,11 @@ class InReviewTaskMutation(InfoStatusMutation, graphene.Mutation):
             task.save()
 
             return InReviewTaskMutation(success=True, message='The task status was changed to "In review"')
-        except Task.DoesNotExist:
+        except Challenge.DoesNotExist:
             return InReviewTaskMutation(success=False, message="The task doesn't exist")
 
 
-class ClaimTaskMutation(InfoStatusMutation, graphene.Mutation):
+class ClaimBountyMutation(InfoStatusMutation, graphene.Mutation):
     class Arguments:
         bounty_id = graphene.Int(required=True)
 
@@ -848,14 +863,16 @@ class ClaimTaskMutation(InfoStatusMutation, graphene.Mutation):
     @staticmethod
     @is_current_person
     def mutate(current_person, info, *args, bounty_id):
+        is_need_agreement = False
+
         try:
             bounty = Bounty.objects.get(id=bounty_id)
             challenge = bounty.challenge
             challenge_id = challenge.id
 
-            is_need_agreement = ClaimTaskMutation.get_is_need_agreement(current_person.id, challenge_id)
+            is_need_agreement = ClaimBountyMutation.get_is_need_agreement(current_person.id, challenge_id)
             if is_need_agreement:
-                return ClaimTaskMutation(
+                return ClaimBountyMutation(
                     success=True,
                     message="Please, agree Contribution License Agreement first",
                     is_need_agreement=is_need_agreement
@@ -864,11 +881,11 @@ class ClaimTaskMutation(InfoStatusMutation, graphene.Mutation):
             success = True
             message = "The bounty was successfully claimed"
             if not current_person:
-                return ClaimTaskMutation(success=False,
+                return ClaimBountyMutation(success=False,
                                         message="You cannot claim the bounty, please authenticate to the system")
 
             if get_right_task_status(challenge_id) == Challenge.CHALLENGE_STATUS_BLOCKED:
-                return ClaimTaskMutation(
+                return ClaimBountyMutation(
                     success=False,
                     is_need_agreement=False,
                     message="You cannot claim the bounty, when it is blocked"
@@ -877,7 +894,7 @@ class ClaimTaskMutation(InfoStatusMutation, graphene.Mutation):
             claimed_bounty = current_person.bountyclaim_set.filter(kind=CLAIM_TYPE_ACTIVE).last()
             if claimed_bounty:
                 claimed_challenge = claimed_bounty.bounty.challenge
-                return ClaimTaskMutation(
+                return ClaimBountyMutation(
                     success=False,
                     is_need_agreement=False,
                     message="""
@@ -899,15 +916,17 @@ class ClaimTaskMutation(InfoStatusMutation, graphene.Mutation):
                         )
                         bounty_claim_inst.save()
 
+                        # change bounty status to claimed
+                        bounty.status = Bounty.BOUNTY_STATUS_CLAIMED
+                        bounty.save()
+
+                        # change challenge status to claimed
                         challenge.status = Challenge.CHALLENGE_STATUS_CLAIMED
-                        challenge.updated_at = datetime.now()
                         challenge.save()
 
                 except IntegrityError as e:
                     print(e, flush=True)
-                    import traceback
-                    traceback.print_exc()
-                    return ClaimTaskMutation(success=False, message='There was a problem claiming this bounty', is_need_agreement=False)
+                    return ClaimBountyMutation(success=False, message='There was a problem claiming this bounty', is_need_agreement=False)
 
             notification.tasks.send_notification.delay([Notification.Type.EMAIL],
                                                        Notification.EventType.TASK_CLAIMED,
@@ -925,7 +944,7 @@ class ClaimTaskMutation(InfoStatusMutation, graphene.Mutation):
             success = False
             message = "The person doesn't exist"
 
-        return ClaimTaskMutation(success=success, message=message, is_need_agreement=is_need_agreement)
+        return ClaimBountyMutation(success=success, message=message, is_need_agreement=is_need_agreement)
 
 
 class RejectTaskMutation(InfoStatusMutation, graphene.Mutation):
@@ -937,7 +956,7 @@ class RejectTaskMutation(InfoStatusMutation, graphene.Mutation):
     def mutate(current_person, info, *args, **kwargs):
         try:
             task_id = kwargs.get("task_id")
-            task = Task.objects.get(id=task_id)
+            task = Challenge.objects.get(id=task_id)
 
             # check if user has permissions
             if not is_admin_or_manager(current_person, task.product.slug):
@@ -1104,8 +1123,8 @@ class WorkMutations(graphene.ObjectType):
     create_attachment = CreateAttachmentMutation.Field()
     delete_attachment = DeleteAttachmentMutation.Field()
     change_task_priority = ChangeTaskPriorityMutation.Field()
-    leave_task = LeaveTaskMutation.Field()
-    claim_task = ClaimTaskMutation.Field()
+    leave_bounty = LeaveBountyMutation.Field()
+    claim_bounty = ClaimBountyMutation.Field()
     in_review_task = InReviewTaskMutation.Field()
     approve_task = ApproveTaskMutation.Field()
     reject_task = RejectTaskMutation.Field()
