@@ -369,10 +369,10 @@ class CreateChallengeMutation(graphene.Mutation, InfoType):
         try:
             product = Product.objects.get(slug=product_slug)
         except Product.DoesNotExist:
-            return CreateChallengeMutation(task=None, status=False, message="Product doesn't exist")
+            return CreateChallengeMutation(challenge=None, status=False, message="Product doesn't exist")
 
         if not is_admin_or_manager(current_person, product_slug):
-            return CreateChallengeMutation(task=None, status=False, message="You don't have permissions")
+            return CreateChallengeMutation(challenge=None, status=False, message="You don't have permissions")
 
         try:
             initiative = Initiative.objects.get(pk=task_input.initiative)
@@ -447,7 +447,7 @@ class CreateChallengeMutation(graphene.Mutation, InfoType):
                 challenge_bounty.expertise.add(Expertise.objects.get(id=expertise['id']))
 
 
-        return CreateChallengeMutation(task=challenge, status=True, message="Task has been created successfully")
+        return CreateChallengeMutation(challenge=challenge, status=True, message="Task has been created successfully")
 
 
 class UpdateChallengeMutation(graphene.Mutation, InfoType):
@@ -455,7 +455,7 @@ class UpdateChallengeMutation(graphene.Mutation, InfoType):
         id = graphene.Int(required=True)
         input = TaskInput(required=True)
 
-    task = graphene.Field(TaskType)
+    challenge = graphene.Field(TaskType)
 
     @staticmethod
     @is_current_person
@@ -467,7 +467,7 @@ class UpdateChallengeMutation(graphene.Mutation, InfoType):
             priority = task_input.get("priority", None)
 
             if not is_admin_or_manager(current_person, product_slug):
-                return UpdateChallengeMutation(task=None, status=False, message="You don't have permissions")
+                return UpdateChallengeMutation(challenge=None, status=False, message="You don't have permissions")
 
             try:
                 initiative = Initiative.objects.get(pk=task_input.initiative)
@@ -490,7 +490,7 @@ class UpdateChallengeMutation(graphene.Mutation, InfoType):
 
                 if int(task_input.status) == challenge.CHALLENGE_STATUS_CLAIMED and not has_claimed_bounty:
                     return UpdateChallengeMutation(
-                        task=None, status=False,
+                        challenge=None, status=False,
                         message="You cannot change status to claimed because the challenge is not assigned"
                     )
 
@@ -498,7 +498,7 @@ class UpdateChallengeMutation(graphene.Mutation, InfoType):
                     Challenge.CHALLENGE_STATUS_DRAFT, Challenge.CHALLENGE_STATUS_BLOCKED
                 ] and has_claimed_bounty:
                     return UpdateChallengeMutation(
-                        task=None, status=False,
+                        challenge=None, status=False,
                         message="You cannot change status to that because challenge is claimed"
                     )
                 else:
@@ -585,12 +585,10 @@ class UpdateChallengeMutation(graphene.Mutation, InfoType):
                 ob.is_active = False
                 ob.save()
 
-            return UpdateChallengeMutation(task=None, status=True, message="Challenge has been updated successfully")
+            return UpdateChallengeMutation(challenge=None, status=True, message="Challenge has been updated successfully")
         except Exception as ex:
             print(ex)
-            import traceback
-            traceback.print_exc()
-            return UpdateChallengeMutation(task=None, status=False, message="Error with challenge updating")
+            return UpdateChallengeMutation(challenge=None, status=False, message="Error with challenge updating")
 
 
 class DeleteChallengeMutation(graphene.Mutation):
