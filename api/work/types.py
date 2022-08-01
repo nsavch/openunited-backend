@@ -158,8 +158,8 @@ class TaskInput(graphene.InputObjectType):
 
 
 class InitiativeType(DjangoObjectType):
-    available_task_count = graphene.Int(source="get_available_tasks_count")
-    completed_task_count = graphene.Int(source="get_completed_task_count")
+    available_task_count = graphene.Int(source="get_available_challenges_count")
+    completed_task_count = graphene.Int(source="get_completed_challenges_count")
     task_tags = graphene.List(lambda: TagType, source="get_task_tags")
     preview_video_url = graphene.String()
     status = graphene.String()

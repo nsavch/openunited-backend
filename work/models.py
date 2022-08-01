@@ -170,11 +170,11 @@ class Initiative(TimeStampMixin, UUIDMixin):
     def __str__(self):
         return self.name
 
-    def get_available_tasks_count(self):
-        return self.task_set.filter(status=Task.TASK_STATUS_AVAILABLE).count()
+    def get_available_challenges_count(self):
+        return self.challenge_set.filter(status=Challenge.CHALLENGE_STATUS_AVAILABLE).count()
 
-    def get_completed_task_count(self):
-        return self.task_set.filter(status=Task.TASK_STATUS_DONE).count()
+    def get_completed_challenges_count(self):
+        return self.challenge_set.filter(status=Challenge.CHALLENGE_STATUS_DONE).count()
 
     def get_task_tags(self):
         return Tag.objects.filter(task_tags__initiative=self).distinct("id").all()
