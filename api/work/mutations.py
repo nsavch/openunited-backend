@@ -505,11 +505,13 @@ class UpdateChallengeMutation(graphene.Mutation, InfoType):
                     # when making status to available, change all active task claims to failed status
                     if int(task_input.status) == Challenge.CHALLENGE_STATUS_AVAILABLE and has_claimed_bounty:
                         for bounty in challenge.bounty_set.all():
-                            claimed_bounty = bounty.bountyclaim_set.filter(kind__in=[0,1])
-                            if claimed_bounty.count() > 0:
-                                for cb in claimed_bounty:
-                                    cb.kind = 2
-                                    cb.save()
+                            claimed_bounty = bounty.bountyclaim_set.filter(kind__in=[
+                                CLAIM_TYPE_DONE, CLAIM_TYPE_ACTIVE, CLAIM_TYPE_IN_REVIEW])
+                            # set bounty claim kind to failed
+                            claimed_bounty.update(kind=CLAIM_TYPE_FAILED)
+                            # set bounty status to available            
+                            bounty.status = Bounty.BOUNTY_STATUS_AVAILABLE
+                            bounty.save()
 
                     status = int(task_input.status)
             else:
@@ -567,7 +569,7 @@ class UpdateChallengeMutation(graphene.Mutation, InfoType):
             for bounty in bounty_skills:
                 bounty_skill = Skill.objects.get(id=bounty['skill']['id'])
                 try:
-                    challenge_bounty = Bounty.objects.get(challenge=challenge, skill=bounty_skill)
+                    challenge_bounty = Bounty.objects.get(challenge=challenge, skill=bounty_skill, is_active=True)
                     challenge_bounty.points = bounty['points']
                 except Bounty.DoesNotExist:
                     challenge_bounty = Bounty(challenge=challenge, skill=bounty_skill, points=bounty['points'])
@@ -581,9 +583,24 @@ class UpdateChallengeMutation(graphene.Mutation, InfoType):
             # now check if any bounty was removed in this update
             # if so, then set there is_active state to False
             old_bounty = challenge.bounty_set.exclude(id__in=active_bounty_list).filter(is_active=True)
-            for ob in old_bounty:
-                ob.is_active = False
-                ob.save()
+            if old_bounty.count() > 0:
+                for ob in old_bounty:
+                    old_claimed_bounty = ob.bountyclaim_set.filter(kind__in=[
+                                CLAIM_TYPE_DONE, CLAIM_TYPE_ACTIVE, CLAIM_TYPE_IN_REVIEW])
+                    # set old bounty claim kind to failed
+                    old_claimed_bounty.update(kind=CLAIM_TYPE_FAILED)
+
+                    # set old_bounty is_active to False
+                    ob.is_active = False
+                    ob.save()
+
+            # finally, check if there is any active bounty with calimed status
+            if challenge.bounty_set.filter(
+                status__in=[Bounty.BOUNTY_STATUS_CLAIMED, Bounty.BOUNTY_STATUS_IN_REVIEW, Bounty.BOUNTY_STATUS_DONE]
+            ).filter(is_active=True).count() == 0:
+                challenge.status = Challenge.CHALLENGE_STATUS_AVAILABLE
+                challenge.save()
+
 
             return UpdateChallengeMutation(challenge=None, status=True, message="Challenge has been updated successfully")
         except Exception as ex:
@@ -755,13 +772,8 @@ class LeaveBountyMutation(InfoStatusMutation, graphene.Mutation):
         try:
             bounty_id = kwargs.get("bounty_id")
             bounty = Bounty.objects.get(id=bounty_id)
-            bounty_claim = bounty.bountyclaim_set.filter(person=current_person,
-                                                   kind__in=[CLAIM_TYPE_DONE, CLAIM_TYPE_ACTIVE]).all()
-            if len(bounty_claim) == 1:
-                b_c = bounty_claim[0]
-                b_c.kind = CLAIM_TYPE_FAILED
-                b_c.save()
-            elif len(bounty_claim) > 1:
+            bounty_claim = bounty.bountyclaim_set.filter(person=current_person, kind__in=[CLAIM_TYPE_DONE, CLAIM_TYPE_ACTIVE])
+            if bounty_claim.count() > 0:
                 bounty_claim.update(kind=CLAIM_TYPE_FAILED)
             else:
                 return LeaveBountyMutation(success=False, message="The bounty claim was not found")
@@ -770,11 +782,11 @@ class LeaveBountyMutation(InfoStatusMutation, graphene.Mutation):
             bounty.status = Bounty.BOUNTY_STATUS_AVAILABLE
             bounty.save()
 
-            # check if there is any bounty with calimed status
+            # check if there is any active bounty with calimed status
             challenge = bounty.challenge
             if challenge.bounty_set.filter(
                 status__in=[Bounty.BOUNTY_STATUS_CLAIMED, Bounty.BOUNTY_STATUS_IN_REVIEW, Bounty.BOUNTY_STATUS_DONE]
-            ).count() == 0:
+            ).filter(is_active=True).count() == 0:
                 challenge.status = Challenge.CHALLENGE_STATUS_AVAILABLE
                 challenge.save()
 

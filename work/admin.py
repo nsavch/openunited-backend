@@ -1,6 +1,6 @@
 from django.contrib import admin
 from work.models import Product, Initiative, Challenge, Tag, Expertise, \
-    Attachment, CodeRepository, CreateProductRequest, Capability
+    Attachment, CodeRepository, CreateProductRequest, Capability, Bounty
 
 
 class InitiativeAdmin(admin.ModelAdmin):
@@ -20,3 +20,4 @@ admin.site.register(Product)
 admin.site.register(Challenge, ChallengeAdmin)
 admin.site.register(Tag)
 admin.site.register(Expertise)
+admin.site.register(Bounty)
